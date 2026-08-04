@@ -573,7 +573,15 @@
     "previewFailed": "Vista previa imposible: {{error}}. Doble clic en {{file}} en la carpeta.",
     "readFailed": "lectura imposible",
     "docReadFailed": "⚠️ No se pudo leer este documento: {{error}}",
-    "notAProject": "esta carpeta no lleva ningún manifiesto de proyecto — el host se niega a eliminarla"
+    "notAProject": "esta carpeta no lleva ningún manifiesto de proyecto — el host se niega a eliminarla",
+    "sandboxUnavailable": "Memoria no disponible: {{error}}",
+    "sandboxHint": "Si Mnemosyne pide una autorización, respóndele — y luego reintenta.",
+    "designFailed": "No se pudo crear el diseño: {{error}}",
+    "docViewFailed": "No se pudo abrir este archivo: {{error}}",
+    "openFolderFailed": "No se pudo abrir la carpeta: {{error}}",
+    "artifactFailed": "No se pudo generar el artefacto: {{error}}",
+    "deleteFailed": "No se pudo borrar: {{error}}",
+    "retry": "↻ Reintentar"
   },
   "mix": {
     "tabSystems": "Sistemas",

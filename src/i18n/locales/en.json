@@ -573,7 +573,15 @@
     "previewFailed": "Preview failed: {{error}}. Double-click {{file}} in the folder.",
     "readFailed": "reading failed",
     "docReadFailed": "⚠️ Could not read this document: {{error}}",
-    "notAProject": "this folder carries no project manifest — the host refuses to delete it"
+    "notAProject": "this folder carries no project manifest — the host refuses to delete it",
+    "sandboxUnavailable": "Memory unavailable: {{error}}",
+    "sandboxHint": "If Mnemosyne is asking for an authorization, answer it — then retry.",
+    "designFailed": "Design failed: {{error}}",
+    "docViewFailed": "Could not open this file: {{error}}",
+    "openFolderFailed": "Could not open the folder: {{error}}",
+    "artifactFailed": "Could not generate the artifact: {{error}}",
+    "deleteFailed": "Could not delete: {{error}}",
+    "retry": "↻ Retry"
   },
   "mix": {
     "tabSystems": "Systems",

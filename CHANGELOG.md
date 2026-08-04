@@ -9,6 +9,22 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`, 
 stamp written into every scaffolded project. `package.json` must carry the same value;
 the build fails on drift (`scripts/check-version.mjs`).
 
+## [1.0.0-beta.4] — 2026-08-04
+
+The first-launch fix.
+
+- **First-run authorization no longer kills the session** — on a fresh install
+  the host opens its native "Security Authorization Required" dialog and waits
+  for the human; the memory bridge used to give up after 30 seconds, booting
+  Muse into a dead session even when the permission was granted moments later
+  (reported by a beta user). The bridge now waits at human speed (canonical
+  SDK fix, up to 5 minutes), the error banner grew a Retry button, and
+  finishing onboarding re-ensures the vault so the choice is never silently
+  dropped again.
+- **Every error message speaks the shell language** — six French-only error
+  prefixes (memory unavailable, design, file view, folder open, artifact,
+  delete) moved to i18n keys in EN/FR/ES.
+
 ## [1.0.0-beta.3] — 2026-08-04
 
 The document release.

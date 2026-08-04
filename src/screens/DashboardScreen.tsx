@@ -15,7 +15,7 @@ type Mode = { id: string; Icon: (p: { size?: number }) => JSX.Element; key: stri
 type Lane = 'doc' | 'site' | 'cartridge';
 
 export function DashboardScreen({
-  t, lang, error, onOpenDocs, onOpenDesignPref, onQuickLaunch, onAdvancedDoc,
+  t, lang, error, onRetryBoot, onOpenDocs, onOpenDesignPref, onQuickLaunch, onAdvancedDoc,
   focus, onEnableFull,
   modes, mode, onSetMode,
   memVault, onSetMemVault, onOpenMemPanel, groundingBadge, laneIcon,
@@ -27,6 +27,9 @@ export function DashboardScreen({
   t: T;
   lang: LangCode;
   error: string;
+  /** Set ONLY when the sandbox boot failed — the banner then offers a retry
+   *  (first-run authorization answered too late; the grant persists). */
+  onRetryBoot?: () => void;
   onOpenDocs: () => void;
   /** Opens the studio on the GLOBAL design preference — no project needed. */
   onOpenDesignPref: () => void;
@@ -83,7 +86,12 @@ export function DashboardScreen({
           </button>
         </div>
       </header>
-      {error && <div style={S.error}>⚠️ {error}</div>}
+      {error && (
+        <div style={S.error}>
+          ⚠️ {error}
+          {onRetryBoot && <button className="mu-btn" style={{ marginLeft: 10 }} onClick={onRetryBoot}>{t('err.retry')}</button>}
+        </div>
+      )}
 
       <section style={S.quick}>
         <label style={S.quickLabel}>{t('dash.question')}</label>

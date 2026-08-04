@@ -1,7 +1,7 @@
 {
   "name": "@mnemosyne-plugins/muse",
   "displayName": "Muse",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "category": "Productivity",
   "icon": "icon.svg",
   "vendor": "Mnemosyne Labs",
@@ -11,8 +11,24 @@
     "fr": "Codage neuronal — créer par intention, pas par plomberie. Décris une app avec des mots simples ; Muse la cadre avec toi, la designe, prépare un vrai projet sur le disque et le confie à l'agent de ton IDE — ancré dans ta propre mémoire.",
     "es": "Codificación neuronal: crea por intención, no por fontanería. Describe una app con palabras sencillas; Muse la encuadra contigo, la diseña, prepara un proyecto real en el disco y se lo entrega al agente de tu IDE, anclado en tu propia memoria."
   },
-  "keywords": ["creation", "app-builder", "neural-coding", "scaffold", "design", "ide", "agent", "memory"],
-  "permissions": ["vault:read", "vault:write", "model:infer", "dialog:open", "metrics:read", "wallet:read"],
+  "keywords": [
+    "creation",
+    "app-builder",
+    "neural-coding",
+    "scaffold",
+    "design",
+    "ide",
+    "agent",
+    "memory"
+  ],
+  "permissions": [
+    "vault:read",
+    "vault:write",
+    "model:infer",
+    "dialog:open",
+    "metrics:read",
+    "wallet:read"
+  ],
   "updateStrategy": "git",
   "repository": "https://github.com/Mnemosyne-OS/Muse",
   "entrypoints": {

@@ -33,11 +33,14 @@ export const IDES: Ide[] = [
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
 export function OnboardingScreen({
-  t, error, obStep, setObStep, os, setOs, ide, setIde, folder, installed, installables,
+  t, error, onRetryBoot, obStep, setObStep, os, setOs, ide, setIde, folder, installed, installables,
   onPickFolder, onCompleteOnboarding, onDocsOnly, onOpenExternal, onInstallClick,
 }: {
   t: T;
   error: string;
+  /** Set ONLY when the sandbox boot failed — the banner then offers a retry
+   *  (first-run authorization answered too late; the grant persists). */
+  onRetryBoot?: () => void;
   obStep: number;
   setObStep: (step: number) => void;
   os: string;
@@ -60,7 +63,12 @@ export function OnboardingScreen({
       <div style={S.obDots}>
         {[0, 1, 2, 3, 4].map((i) => <span key={i} style={{ ...S.dot, ...(i <= obStep ? S.dotOn : {}) }} />)}
       </div>
-      {error && <div style={S.error}>⚠️ {error}</div>}
+      {error && (
+        <div style={S.error}>
+          ⚠️ {error}
+          {onRetryBoot && <button className="mu-btn" style={{ marginLeft: 10 }} onClick={onRetryBoot}>{t('err.retry')}</button>}
+        </div>
+      )}
 
       {obStep === 0 && (
         <div style={S.obBody}>

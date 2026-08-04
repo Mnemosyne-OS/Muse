@@ -216,6 +216,10 @@ export default function App() {
   const [appHtml, setAppHtml] = useState('');
   const [doneFrom, setDoneFrom] = useState<'new' | 'history'>('new'); // 'new' = just generated (celebratory copy)
   const [error, setError] = useState('');
+  // True ONLY when the sandbox boot failed — the shared `error` banner then
+  // grows a retry button. Feature errors (design save, artifacts…) must not:
+  // retrying THEM through a boot re-run would be a lie.
+  const [bootFailed, setBootFailed] = useState(false);
 
   // Guided creation (the real flow: framing chat -> scaffold -> IDE hand-off)
   const [mode, setMode] = useState<'auto' | Lane>('auto'); // router chip on the dashboard
@@ -1017,7 +1021,7 @@ export default function App() {
     } catch (err) {
       console.warn('Design save failed:', err);
       setDesignState('error');
-      setError(`Design impossible : ${(err as Error).message}`);
+      setError(t('err.designFailed', { error: (err as Error).message }));
     }
   };
   const [artView, setArtView] = useState<{ title: string; content: string; mermaids: string[]; kind: 'md' | 'html' } | null>(null);
@@ -1042,7 +1046,7 @@ export default function App() {
       const content = fence !== null ? `\`\`\`${fence}\n${res.content}\n\`\`\`` : res.content;
       setArtView({ title, content, mermaids, kind: isHtml ? 'html' : 'md' });
     } catch (err) {
-      setError(`Lecture impossible : ${(err as Error).message}`);
+      setError(t('err.docViewFailed', { error: (err as Error).message }));
     }
   };
 
@@ -1215,7 +1219,7 @@ export default function App() {
       if (!r?.success) throw new Error(r?.error || t('err.actionRefused'));
     } catch (err) {
       console.warn('openInOS failed:', err);
-      setError(`Ouverture du dossier impossible : ${(err as Error).message}`);
+      setError(t('err.openFolderFailed', { error: (err as Error).message }));
     }
   };
 
@@ -1261,7 +1265,7 @@ export default function App() {
     } catch (err) {
       console.warn('Artifact generation failed:', err);
       setArtState((s) => ({ ...s, [art.id]: 'error' }));
-      setError(`Artefact impossible : ${(err as Error).message}`);
+      setError(t('err.artifactFailed', { error: (err as Error).message }));
     }
   };
 
@@ -1327,17 +1331,26 @@ export default function App() {
   }, [view]);
 
   // Boot the sandbox vault, read the onboarding flag + saved projects.
-  useEffect(() => {
-    sdk.ensureSandbox()
-      .then(async ({ vault }) => {
-        setVault(vault);
-        // The label follows the shell language at boot (Tony: "Projets", not
-        // "Apps" — a Muse row is a project, apps are only one of its lanes).
-        await sdk.describeVaultTile({ icon: '✦', metrics: [{ label: t('tile.projects'), spine: SPINE }] });
-        await loadState(vault);
-      })
-      .catch((err: Error) => setError(`Sandbox indisponible : ${err.message}`));
-  }, []);
+  // Kept callable: on first launch the host may open its native authorization
+  // dialog and the human can answer it too late — the banner then offers a
+  // retry instead of leaving the whole session dead (the grant persists, so
+  // the retry succeeds).
+  const bootSandbox = async () => {
+    setBootFailed(false);
+    setError('');
+    try {
+      const { vault } = await sdk.ensureSandbox();
+      setVault(vault);
+      // The label follows the shell language at boot (Tony: "Projets", not
+      // "Apps" — a Muse row is a project, apps are only one of its lanes).
+      await sdk.describeVaultTile({ icon: '✦', metrics: [{ label: t('tile.projects'), spine: SPINE }] });
+      await loadState(vault);
+    } catch (err) {
+      setBootFailed(true);
+      setError(`${t('err.sandboxUnavailable', { error: (err as Error).message })} ${t('err.sandboxHint')}`);
+    }
+  };
+  useEffect(() => { void bootSandbox(); }, []);
 
   // Real vault list for the memory picker. memoryStats alone gives counts but no
   // identity, which listed raw ids ("app-mnemosyne-plugins-…") beside human
@@ -1778,8 +1791,21 @@ export default function App() {
   const completeOnboarding = async (chosenFocus: 'doc' | 'full' = focus) => {
     setFocus(chosenFocus);
     if (chosenFocus === 'doc') setMode('doc');
-    if (vault) {
-      try { await sdk.socialIngest(vault, JSON.stringify({ onboarded: true, ide, folder, focus: chosenFocus, ts: Date.now() }), META); }
+    // A failed boot (authorization dialog answered too late) would silently
+    // drop the flag here and replay onboarding forever. By this point the
+    // human has usually granted the permission — re-ensure heals the session.
+    let target = vault;
+    if (!target) {
+      try {
+        target = (await sdk.ensureSandbox()).vault;
+        setVault(target);
+        setBootFailed(false);
+        setError('');
+        void loadState(target);
+      } catch (err) { console.warn('Sandbox still unavailable — onboarding flag not persisted:', err); }
+    }
+    if (target) {
+      try { await sdk.socialIngest(target, JSON.stringify({ onboarded: true, ide, folder, focus: chosenFocus, ts: Date.now() }), META); }
       catch (err) { console.warn('Could not persist onboarding:', err); }
     }
     setOnboarded(true);
@@ -2084,7 +2110,7 @@ export default function App() {
       if (vault) await loadState(vault);
     } catch (err) {
       console.warn('Project delete failed:', err);
-      setError(`Suppression impossible : ${(err as Error).message}`);
+      setError(t('err.deleteFailed', { error: (err as Error).message }));
       setDelTarget(null);
       setDelFiles(false);
     } finally {
@@ -2410,7 +2436,8 @@ export default function App() {
       {/* ── First-run onboarding ────────────────────────────────────────── */}
       {view === 'onboarding' && (
         <OnboardingScreen
-          t={t} error={error} obStep={obStep} setObStep={setObStep}
+          t={t} error={error} onRetryBoot={bootFailed ? () => { void bootSandbox(); } : undefined}
+          obStep={obStep} setObStep={setObStep}
           os={os} setOs={setOs} ide={ide} setIde={setIde}
           folder={folder} installed={installed} installables={INSTALLABLES}
           onPickFolder={pickFolder}
@@ -2425,6 +2452,7 @@ export default function App() {
       {view === 'dashboard' && (
         <DashboardScreen
           t={t} lang={lang} error={error}
+          onRetryBoot={bootFailed ? () => { void bootSandbox(); } : undefined}
           onOpenDocs={() => setView('docs')}
           onOpenDesignPref={() => { setDesignFor('pref'); setPrefState('idle'); setView('design'); }}
           onQuickLaunch={startQuickLaunch}

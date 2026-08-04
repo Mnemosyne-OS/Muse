@@ -573,7 +573,15 @@
     "previewFailed": "Aperçu impossible : {{error}}. Double-clique {{file}} dans le dossier.",
     "readFailed": "lecture impossible",
     "docReadFailed": "⚠️ Impossible de lire ce document : {{error}}",
-    "notAProject": "ce dossier ne porte aucun manifeste de projet — l’hôte refuse de le supprimer"
+    "notAProject": "ce dossier ne porte aucun manifeste de projet — l’hôte refuse de le supprimer",
+    "sandboxUnavailable": "Mémoire indisponible : {{error}}",
+    "sandboxHint": "Si Mnemosyne demande une autorisation, réponds-lui — puis réessaie.",
+    "designFailed": "Design impossible : {{error}}",
+    "docViewFailed": "Lecture impossible : {{error}}",
+    "openFolderFailed": "Ouverture du dossier impossible : {{error}}",
+    "artifactFailed": "Artefact impossible : {{error}}",
+    "deleteFailed": "Suppression impossible : {{error}}",
+    "retry": "↻ Réessayer"
   },
   "mix": {
     "tabSystems": "Systèmes",
