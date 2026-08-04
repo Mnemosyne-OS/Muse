@@ -1,0 +1,15 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Muse">
+  <defs>
+    <linearGradient id="muse-grad" x1="6" y1="42" x2="42" y2="6" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="13" stroke="url(#muse-grad)" stroke-width="1.4" stroke-opacity="0.3"/>
+  <path d="M10.8 36 L15.6 12.6 L24 25.2 L32.4 12.6 L37.2 36" stroke="url(#muse-grad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="10.8" cy="36" r="2.6" fill="url(#muse-grad)"/>
+  <circle cx="15.6" cy="12.6" r="2.6" fill="url(#muse-grad)"/>
+  <circle cx="24" cy="25.2" r="2.6" fill="url(#muse-grad)"/>
+  <circle cx="32.4" cy="12.6" r="2.6" fill="url(#muse-grad)"/>
+  <circle cx="37.2" cy="36" r="2.6" fill="url(#muse-grad)"/>
+</svg>

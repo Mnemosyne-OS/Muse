@@ -1,0 +1,31 @@
+{
+  "name": "@mnemosyne-plugins/muse",
+  "displayName": "Muse",
+  "version": "1.0.0-beta.1",
+  "category": "Productivity",
+  "icon": "icon.svg",
+  "vendor": "Mnemosyne Labs",
+  "license": "MIT",
+  "description": "Neural coding — create by intention, not by plumbing. Describe an app in plain words; Muse frames it with you, designs it, scaffolds a real project on disk and hands it to your IDE agent — grounded in your own memory.",
+  "descriptionI18n": {
+    "en": "Neural coding — create by intention, not by plumbing. Describe an app in plain words; Muse frames it with you, designs it, scaffolds a real project on disk and hands it to your IDE agent — grounded in your own memory.",
+    "fr": "Codage neuronal — créer par intention, pas par plomberie. Décris une app avec des mots simples ; Muse la cadre avec toi, la designe, prépare un vrai projet sur le disque et le confie à l'agent de ton IDE — ancré dans ta propre mémoire.",
+    "es": "Codificación neuronal: crea por intención, no por fontanería. Describe una app con palabras sencillas; Muse la encuadra contigo, la diseña, prepara un proyecto real en el disco y se lo entrega al agente de tu IDE, anclado en tu propia memoria."
+  },
+  "keywords": ["creation", "app-builder", "neural-coding", "scaffold", "design", "ide", "agent", "memory"],
+  "permissions": ["vault:read", "vault:write", "model:infer", "dialog:open", "metrics:read", "wallet:read"],
+  "updateStrategy": "git",
+  "repository": "https://github.com/Mnemosyne-OS/Muse",
+  "entrypoints": {
+    "renderer": "index.html"
+  },
+  "widgets": [
+    {
+      "id": "muse-main",
+      "name": "Muse",
+      "route": "index.html",
+      "defaultWidth": 720,
+      "defaultHeight": 780
+    }
+  ]
+}

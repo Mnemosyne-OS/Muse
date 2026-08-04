@@ -1,0 +1,32 @@
+{
+  "name": "@mnemosyne-plugins/muse",
+  "version": "1.0.0-beta.1",
+  "private": true,
+  "repository": "https://github.com/Mnemosyne-OS/Muse",
+  "type": "module",
+  "description": "Muse — neural coding cartridge: create an app by intention, in 3 steps, no coding needed.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "dev:cartridge": "vite",
+    "build": "node scripts/check-i18n.mjs && node scripts/check-version.mjs && tsc && vite build",
+    "preview": "vite preview",
+    "i18n": "node scripts/check-i18n.mjs",
+    "check:version": "node scripts/check-version.mjs",
+    "test": "node --experimental-strip-types scripts/test.mjs && node --experimental-strip-types scripts/test-logic.mjs",
+    "test:handoff": "node --experimental-strip-types scripts/test.mjs",
+    "test:logic": "node --experimental-strip-types scripts/test-logic.mjs"
+  },
+  "dependencies": {
+    "@mnemosyne_os/cartridge-sdk": "^0.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.1"
+  }
+}
