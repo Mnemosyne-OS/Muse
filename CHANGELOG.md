@@ -9,6 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`, 
 stamp written into every scaffolded project. `package.json` must carry the same value;
 the build fails on drift (`scripts/check-version.mjs`).
 
+## [1.0.0-beta.2] — 2026-08-03
+
+- The vault tile counts **Projects** (localized EN/FR/ES), no longer "Apps" — a Muse
+  row is a project; apps are only one of its lanes. Counting itself was repaired
+  host-side the same evening (custom app spines survive ingest).
+
 ## [1.0.0-beta.1] — 2026-08-03
 
 First public beta.

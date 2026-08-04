@@ -1311,7 +1311,9 @@ export default function App() {
     sdk.ensureSandbox()
       .then(async ({ vault }) => {
         setVault(vault);
-        await sdk.describeVaultTile({ icon: '✦', metrics: [{ label: 'Apps', spine: SPINE }] });
+        // The label follows the shell language at boot (Tony: "Projets", not
+        // "Apps" — a Muse row is a project, apps are only one of its lanes).
+        await sdk.describeVaultTile({ icon: '✦', metrics: [{ label: t('tile.projects'), spine: SPINE }] });
         await loadState(vault);
       })
       .catch((err: Error) => setError(`Sandbox indisponible : ${err.message}`));

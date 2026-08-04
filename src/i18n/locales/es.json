@@ -201,6 +201,9 @@
     "tierStandard": "⚖️ Estándar",
     "tierMax": "💎 Max · nube"
   },
+  "tile": {
+    "projects": "Proyectos"
+  },
   "intro": {
     "tagline1": "Entra en la era del",
     "neural": "Neural Coding",
