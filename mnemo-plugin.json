@@ -5,7 +5,6 @@
   "category": "Productivity",
   "icon": "icon.svg",
   "vendor": "Mnemosyne Labs",
-  "license": "MIT",
   "description": "Neural coding — create by intention, not by plumbing. Describe an app in plain words; Muse frames it with you, designs it, scaffolds a real project on disk and hands it to your IDE agent — grounded in your own memory.",
   "descriptionI18n": {
     "en": "Neural coding — create by intention, not by plumbing. Describe an app in plain words; Muse frames it with you, designs it, scaffolds a real project on disk and hands it to your IDE agent — grounded in your own memory.",

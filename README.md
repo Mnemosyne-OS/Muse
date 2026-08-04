@@ -50,3 +50,10 @@ Port **5205** (declared in `apps/dev-ports.json` + `mnemo-plugin.json`, base `./
 Checks: `pnpm --filter @mnemosyne-plugins/muse i18n` (EN/FR/ES locales aligned),
 `check:version` (manifest ↔ package.json), `test` (pure-helper smoke tests) — all
 three run as part of `build`.
+
+## License
+
+[Mnemosyne OS Cartridge License](LICENSE.md) — source-available: the full `src/` ships
+in this repo and modifications are welcome, as long as the cartridge runs within the
+Mnemosyne OS ecosystem. Standalone hosting or redistribution outside a Mnemosyne OS
+instance requires written consent.

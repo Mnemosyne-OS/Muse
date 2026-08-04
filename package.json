@@ -5,7 +5,6 @@
   "repository": "https://github.com/Mnemosyne-OS/Muse",
   "type": "module",
   "description": "Muse — neural coding cartridge: create an app by intention, in 3 steps, no coding needed.",
-  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "dev:cartridge": "vite",
