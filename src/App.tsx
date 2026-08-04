@@ -9,6 +9,8 @@ import {
 import { setPromptLanguage, languageSystemPrompt, appendVerityLog, buildAppSpec, buildArtifactPrompt, buildBrief, buildDesignTokens, buildOdSystem, inlineOdStylesheet, buildDocPlanPrompt, buildDocRenderPrompt, buildDocStyleBlock, buildDocDesignBlock, resolveDesignMix, buildFramingPrompt, buildHandoffPrompt, buildVerityFixPrompt, buildVerityPrompt, buildVerityReport, isImageFile, memoryLabel, memoryMode, memoryScope, orderVaultsForDisplay, prettyVaultName, replaceImagePlaceholders, homeFromPath, odScheme, OD_CATALOG_ID, OD_CATALOG_URL, OD_SYSTEMS_DIR, OD_EXPECTED_SYSTEMS, OD_PAGE_FILES, MCP_TARGETS, mergeMcpConfig, parseFramingReply, parseLibraryIndex, parseVerityReply, runVerityHeuristics, slugify, upsertCatalog, upsertLibrary, type ArtifactKind, type ChatMsg, type DocFormat, type FramingBrief, type Harmony, type Lane, type McpIde, type MemorySource, type OdSystem, type DesignMix, type DesignRole, type FontRole, EMPTY_MIX, type RefLibrary, type VerityAlert } from './handoff';
 import { DesignStudio, STYLE_PRESETS } from './DesignStudio';
 import { TruthStudio } from './TruthStudio';
+import { DocStudio } from './DocStudio';
+import type { DocBuild, DocBlock, DocOutline } from './handoff';
 import { useI18n, dateLocale } from './i18n/useI18n';
 import { GBan, GCheck, GClose, GDoc, GFolder, GGlobe, GLock, GMemory, GPuzzle, GSliders, GSpark, GTrash } from './Glyphs';
 import { Footer, KEYFRAMES, Logo, RepoCard, S, SideLogo } from './Chrome';
@@ -35,6 +37,9 @@ const FRAMING_SPINE = 'MUSE_FRAMING'; // framing-chat checkpoints (crash-safe re
 // My design: the GLOBAL default every creation starts from. Latest row wins,
 // like META — a preference is a single current value, not a history.
 const DESIGN_SPINE = 'MUSE_DESIGN';
+// Advanced document builder checkpoints (plan + blocks) — latest row wins,
+// like the framing chat: a crash never loses an evening's plan.
+const DOCBUILD_SPINE = 'MUSE_DOCBUILD';
 const MUSE_VERSION = manifest.version; // single source = the official cartridge manifest
 const REPO = 'https://github.com/Mnemosyne-OS/Mnemosyne-Neural-OS';
 
@@ -141,7 +146,7 @@ const openExternal = (url: string) => {
     ?.catch((e: unknown) => console.warn('openExternal failed:', e));
 };
 
-type View = 'intro' | 'onboarding' | 'ready' | 'dashboard' | 'brief' | 'handoff' | 'design' | 'verify' | 'name' | 'generating' | 'done' | 'docs';
+type View = 'intro' | 'onboarding' | 'ready' | 'dashboard' | 'brief' | 'handoff' | 'design' | 'verify' | 'name' | 'docstudio' | 'generating' | 'done' | 'docs';
 type FramingSave = { idea: string; chat: ChatMsg[]; brief: FramingBrief | null; done: boolean; ts: number };
 /** One generated take of a document — regenerating adds a version, it never
  *  replaces and never spawns a second history row. */
@@ -331,6 +336,16 @@ export default function App() {
   /** Images belonging to the take ON SCREEN — not the same list as the pick
    *  for the NEXT one, which is why they are separate states. */
   const [takeImages, setTakeImages] = useState<DocImage[]>([]);
+  /** Latest advanced-builder checkpoint from the vault (resume offer). */
+  const [savedBuild, setSavedBuild] = useState<DocBuild | null>(null);
+  /** Latest checkpoint PER document — the way BACK into the studio after a
+   *  save (Tony: "une fois que c'est généré je veux pouvoir y revenir"). */
+  const [savedBuilds, setSavedBuilds] = useState<Record<string, DocBuild>>({});
+  /** The build the studio opens with (done screen → studio); null = fresh. */
+  const [studioSeed, setStudioSeed] = useState<DocBuild | null>(null);
+  /** Credits spent across THIS studio session's per-block calls — summed, so
+   *  the saved take carries what the whole construction really cost. */
+  const advSpend = useRef({ usd: 0 });
   const [appHtmlView, setAppHtmlView] = useState('');
   /** Data-URI cache keyed by path: switching versions must not re-read the
    *  same photo, and a multi-megabyte file crossing the bridge is not free. */
@@ -1273,6 +1288,11 @@ export default function App() {
 
   // Onboarding local state
   const [obStep, setObStep] = useState(0);
+  /** What this human creates with Muse. 'doc' strips the dashboard down to
+   *  the document studio — no lane chips, no app tiles, no IDE anywhere
+   *  (Tony: "si la personne veut créer que des documents, pas besoin de
+   *  l'UI prendre la tête"). Persisted in the META row, latest wins. */
+  const [focus, setFocus] = useState<'doc' | 'full'>('full');
   const [ide, setIde] = useState('');
   const [os, setOs] = useState('');
   const [folder, setFolder] = useState('');
@@ -1417,34 +1437,42 @@ export default function App() {
   // The document on screen carries image PLACEHOLDERS; the bytes are pulled
   // from disk here. Keeping the two apart is what lets a take with photos stay
   // under the history size ceiling and still render whole.
+  /** Swap a document's {{IMG_n}} tokens for real data URIs read from disk —
+   *  shared by the viewer effect below and the studio preview. */
+  const resolveDocHtml = async (html: string, imgs: DocImage[]): Promise<string> => {
+    if (!imgs.length) return html;
+    const resolved: Array<{ token: string; uri: string; alt: string }> = [];
+    for (let i = 0; i < imgs.length; i++) {
+      const img = imgs[i];
+      let uri = imgCache.current.get(img.path);
+      if (!uri) {
+        try {
+          const r = await invokeHost<{ success?: boolean; content?: string }>('dialog.readFile', { filePath: img.path });
+          // The host returns binaries as a data URI; anything else means the
+          // file moved or is no longer readable — that image is simply
+          // dropped, never rendered as a broken tag.
+          if (r?.success && typeof r.content === 'string' && r.content.startsWith('data:')) {
+            uri = r.content;
+            imgCache.current.set(img.path, uri);
+          }
+        } catch (err) {
+          console.warn('Image unreadable, skipped:', img.rel, err);
+        }
+      }
+      if (uri) resolved.push({ token: `{{IMG_${i + 1}}}`, uri, alt: img.caption || img.rel });
+    }
+    return replaceImagePlaceholders(html, resolved);
+  };
+
   useEffect(() => {
     let alive = true;
     (async () => {
       if (!appHtml) { setAppHtmlView(''); return; }
-      if (!takeImages.length) { setAppHtmlView(appHtml); return; }
-      const resolved: Array<{ token: string; uri: string; alt: string }> = [];
-      for (let i = 0; i < takeImages.length; i++) {
-        const img = takeImages[i];
-        let uri = imgCache.current.get(img.path);
-        if (!uri) {
-          try {
-            const r = await invokeHost<{ success?: boolean; content?: string }>('dialog.readFile', { filePath: img.path });
-            // The host returns binaries as a data URI; anything else means the
-            // file moved or is no longer readable — that image is simply
-            // dropped, never rendered as a broken tag.
-            if (r?.success && typeof r.content === 'string' && r.content.startsWith('data:')) {
-              uri = r.content;
-              imgCache.current.set(img.path, uri);
-            }
-          } catch (err) {
-            console.warn('Image unreadable, skipped:', img.rel, err);
-          }
-        }
-        if (uri) resolved.push({ token: `{{IMG_${i + 1}}}`, uri, alt: img.caption || img.rel });
-      }
-      if (alive) setAppHtmlView(replaceImagePlaceholders(appHtml, resolved));
+      const out = await resolveDocHtml(appHtml, takeImages);
+      if (alive) setAppHtmlView(out);
     })();
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resolveDocHtml is stable in behavior (cache ref + host call)
   }, [appHtml, takeImages]);
 
   // Detect which installables are already in the app space (a non-empty
@@ -1585,8 +1613,13 @@ export default function App() {
       let prefRow: DesignMix | null = null;
       let metaOnboarded = false;
       let metaFolder = '';
+      let metaFocus: 'doc' | 'full' = 'full';
       let framingTs = -1;
       let framingRow: FramingSave | null = null;
+      let buildTs = -1;
+      let buildRow: DocBuild | null = null;
+      const buildMap: Record<string, DocBuild> = {};
+      const buildMapTs: Record<string, number> = {};
       for (const row of rows) {
         const rowId = typeof (row as { id?: unknown })?.id === 'number' ? (row as { id: number }).id : null;
         const content = (row as { content?: string })?.content ?? String(row);
@@ -1610,6 +1643,27 @@ export default function App() {
             }
             continue;
           }
+          // Advanced-builder checkpoints — latest wins; malformed ones are
+          // skipped whole (a partial plan resurrected would look like data loss).
+          if ((p as { docbuild?: unknown }).docbuild === true) {
+            const b = p as unknown as Partial<DocBuild>;
+            const ts = typeof b.ts === 'number' ? b.ts : 0;
+            const outlineOk = !!b.outline && Array.isArray((b.outline as DocOutline).sections);
+            if (outlineOk && Array.isArray(b.blocks) && typeof b.docId === 'string' && typeof b.name === 'string') {
+              const entry: DocBuild = {
+                docbuild: true, docId: b.docId, name: b.name,
+                purpose: typeof b.purpose === 'string' ? b.purpose : '',
+                outline: b.outline as DocOutline,
+                blocks: (b.blocks as DocBlock[]).filter((x) => !!x && typeof x.id === 'string' && (x.kind === 'gen' || x.kind === 'text' || x.kind === 'image')),
+                ts,
+              };
+              // Latest per document (the reopen path) AND latest overall (the
+              // fresh-entry resume banner) — one scan feeds both.
+              if (ts >= (buildMapTs[entry.docId] ?? -1)) { buildMapTs[entry.docId] = ts; buildMap[entry.docId] = entry; }
+              if (ts >= buildTs) { buildTs = ts; buildRow = entry; }
+            }
+            continue;
+          }
           // The global design preference — latest row wins, same as META.
           if (p?.designPref && typeof p.designPref === 'object') {
             const ts = typeof p.ts === 'number' ? p.ts : 0;
@@ -1618,7 +1672,10 @@ export default function App() {
           }
           if (typeof p?.onboarded === 'boolean') {
             const ts = typeof p.ts === 'number' ? p.ts : 0; // latest meta wins → reset works
-            if (ts >= metaTs) { metaTs = ts; metaOnboarded = p.onboarded; metaFolder = typeof p.folder === 'string' ? p.folder : ''; }
+            if (ts >= metaTs) {
+              metaTs = ts; metaOnboarded = p.onboarded; metaFolder = typeof p.folder === 'string' ? p.folder : '';
+              metaFocus = (p as { focus?: unknown }).focus === 'doc' ? 'doc' : 'full';
+            }
             continue;
           }
           // Only real rows make the history: done entries carry their HTML
@@ -1675,8 +1732,12 @@ export default function App() {
       }
       setOnboarded(metaOnboarded);
       if (metaFolder) setFolder(metaFolder); // restore the app space across sessions
+      setFocus(metaFocus);
+      if (metaFocus === 'doc') setMode('doc'); // a documents-only Muse has one lane
       // Surface an interrupted framing session (crash/close) for one-click resume.
       setSavedFraming(framingRow && !framingRow.done && framingRow.chat.length > 0 ? framingRow : null);
+      setSavedBuild(buildRow);
+      setSavedBuilds(buildMap);
       parsed.sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0)); // newest first — real history
       // A re-prepared draft rewrites the same folder → keep only the newest row
       // per path. Documents sharing a docId are the SAME document: the newest
@@ -1714,15 +1775,28 @@ export default function App() {
   /** Marks onboarding done (persisted in the sandbox vault) and hands off to
    *  the dashboard — a short 'ready' beat first, deliberately brief since
    *  this is a handover, not a second intro. */
-  const completeOnboarding = async () => {
+  const completeOnboarding = async (chosenFocus: 'doc' | 'full' = focus) => {
+    setFocus(chosenFocus);
+    if (chosenFocus === 'doc') setMode('doc');
     if (vault) {
-      try { await sdk.socialIngest(vault, JSON.stringify({ onboarded: true, ide, folder, ts: Date.now() }), META); }
+      try { await sdk.socialIngest(vault, JSON.stringify({ onboarded: true, ide, folder, focus: chosenFocus, ts: Date.now() }), META); }
       catch (err) { console.warn('Could not persist onboarding:', err); }
     }
     setOnboarded(true);
     // A beat to land on: the mark fades in centered, then the dashboard. Short
     // on purpose — this is a handover, not a second intro.
     setView('ready');
+  };
+
+  /** Widen a documents-only Muse to the full studio (persisted like the
+   *  onboarding choice — same META row, latest wins). The reverse direction
+   *  goes through the onboarding reset, where the fork lives. */
+  const enableFullFocus = async () => {
+    setFocus('full');
+    if (vault) {
+      try { await sdk.socialIngest(vault, JSON.stringify({ onboarded: true, ide, folder, focus: 'full', ts: Date.now() }), META); }
+      catch (err) { console.warn('Could not persist focus:', err); }
+    }
   };
 
   /** Reverses completeOnboarding: clears the persisted flag and every
@@ -2080,6 +2154,81 @@ export default function App() {
     }
   };
 
+  /** The wallet's total spend — the before/after delta of a call IS its real
+   *  cost (server-billed). null = no wallet / offline / BYOK → unmeasured. */
+  const readSpend = async (): Promise<number | null> => {
+    try {
+      const r = await invokeHost<{ success?: boolean; data?: { usedUsdMicro?: number } }>('credits.status', {});
+      return r?.success && typeof r.data?.usedUsdMicro === 'number' ? r.data.usedUsdMicro : null;
+    } catch {
+      return null; // no wallet / offline / BYOK — reported as unmeasured
+    }
+  };
+  const readText = (r: unknown) => String((r as { text?: string; response?: string })?.text ?? (r as { response?: string })?.response ?? '');
+
+  // ── Advanced document builder (plan → blocks → assemble) ──────────────────
+  /** One model call for the studio: current picker scope, current tier's mode,
+   *  cost metered into the session accumulator so the saved take carries the
+   *  REAL total of every block generated along the way. */
+  const runAdvInfer = async (prompt: string, o: { maxTokens: number; temperature: number }): Promise<string> => {
+    const mode = docTier === 'eco' ? { forceMode: 'local' as const } : docTier === 'max' ? { forceMode: 'cloud' as const } : {};
+    const before = docTier === 'eco' ? null : await readSpend();
+    const res = await invokeHost<{ success?: boolean; error?: string; text?: string; response?: string }>('model.infer', {
+      prompt, temperature: o.temperature, maxTokens: o.maxTokens,
+      ragQuery: projectRagQuery, ...memScope, ...mode,
+      // [LANGUAGE] A dedicated system-channel pin — see languageSystemPrompt().
+      systemPrompt: languageSystemPrompt(),
+    });
+    noteGrounding(res, memMode);
+    if (docTier !== 'eco') {
+      const after = await readSpend();
+      if (before !== null && after !== null && after > before) advSpend.current.usd += after - before;
+    }
+    if (res && res.success === false) throw new Error(res.error || t('err.inferRefused'));
+    const text = readText(res);
+    if (!text.trim()) throw new Error(t('doc.emptyReply'));
+    return text;
+  };
+
+  /** Fire-and-forget builder checkpoint — latest row wins on load. */
+  const checkpointBuild = (b: DocBuild) => {
+    if (!vault) return;
+    sdk.socialIngest(vault, JSON.stringify(b), DOCBUILD_SPINE)
+      .catch((err) => console.warn('Docbuild checkpoint failed:', err));
+  };
+
+  /** Persist the assembled document as a take — same row shape as the quick
+   *  lane (plus `advanced: true`), so history, versions and the viewer treat
+   *  both modes as one kind of document. */
+  const saveAdvancedTake = async (build: DocBuild, html: string) => {
+    const ts = Date.now();
+    const cost: GenCost = docTier === 'eco'
+      ? { unmeasured: 'local' }
+      : advSpend.current.usd > 0 ? { usdMicro: advSpend.current.usd } : { unmeasured: 'byok' };
+    const sameDoc = build.docId === curDocId;
+    const version = sameDoc ? Math.max(...docVersions.map((v) => v.version), 0) + 1 : 1;
+    const take: DocVersion = { version, ts, html, style: docStyle, systemId: null, memory: memoryLabel(memVault), memSource: memVault, grounding, format: 'page', svg: docSvg, images: docImages, tier: docTier, cost, rowId: null };
+    setName(build.name);
+    setPurpose(build.purpose);
+    setAppHtml(html);
+    setTakeImages(docImages);
+    setCurDocId(build.docId);
+    setCurVersion(version);
+    setDocVersions((prev) => (sameDoc ? [take, ...prev.filter((v) => v.version !== version)] : [take]));
+    if (vault) {
+      try {
+        if (html.length <= 200_000) {
+          await sdk.socialIngest(vault, JSON.stringify({ name: build.name, purpose: build.purpose, status: 'done', ts, html, lane: 'doc', docId: build.docId, version, style: docStyle, systemId: null, memory: memoryLabel(memVault), memSource: memVault, grounding, format: 'page', svg: docSvg, images: docImages, tier: docTier, cost, advanced: true }), SPINE);
+          await loadState(vault);
+        } else {
+          console.warn('Assembled document above 200KB — not persisted in history.');
+        }
+      } catch (err) { console.warn('Could not save the document:', err); }
+    }
+    setDoneFrom('new');
+    setView('done');
+  };
+
   /** Generate a document. With no argument it starts a NEW document (v1);
    *  called from the done screen it adds the next version of the same docId —
    *  same intent and, unless the regen panel changed it, the same memory.
@@ -2115,20 +2264,11 @@ export default function App() {
       // usedUsdMicro before/after the generation IS the amount charged. Only the
       // Mnemosyne Cloud path is metered — a personal API key is billed by the
       // provider (the host never sees it) and local costs nothing.
-      const readSpend = async (): Promise<number | null> => {
-        try {
-          const r = await invokeHost<{ success?: boolean; data?: { usedUsdMicro?: number } }>('credits.status', {});
-          return r?.success && typeof r.data?.usedUsdMicro === 'number' ? r.data.usedUsdMicro : null;
-        } catch {
-          return null; // no wallet / offline / BYOK — reported as unmeasured
-        }
-      };
       const spendBefore = docTier === 'eco' ? null : await readSpend();
 
       // Scope and retrieval query come from the shared derivation at the top of
       // the component — this lane used to be the only one that had them.
       const modeOpt = TIER.mode ? { forceMode: TIER.mode } : {};
-      const readText = (r: unknown) => String((r as { text?: string; response?: string })?.text ?? (r as { response?: string })?.response ?? '');
 
       // Pass 1 — plan. Skipped in eco: one cheap call, or nothing.
       let plan = '';
@@ -2273,7 +2413,9 @@ export default function App() {
           t={t} error={error} obStep={obStep} setObStep={setObStep}
           os={os} setOs={setOs} ide={ide} setIde={setIde}
           folder={folder} installed={installed} installables={INSTALLABLES}
-          onPickFolder={pickFolder} onCompleteOnboarding={completeOnboarding}
+          onPickFolder={pickFolder}
+          onCompleteOnboarding={() => { void completeOnboarding('full'); }}
+          onDocsOnly={() => { void completeOnboarding('doc'); }}
           onOpenExternal={openExternal}
           onInstallClick={(item) => { setCloneTarget(item); setCloning('confirm'); }}
         />
@@ -2286,6 +2428,8 @@ export default function App() {
           onOpenDocs={() => setView('docs')}
           onOpenDesignPref={() => { setDesignFor('pref'); setPrefState('idle'); setView('design'); }}
           onQuickLaunch={startQuickLaunch}
+          onAdvancedDoc={(input) => { setPurpose(input.trim()); setName(''); setStudioSeed(null); advSpend.current.usd = 0; setView('docstudio'); }}
+          focus={focus} onEnableFull={() => { void enableFullFocus(); }}
           modes={MODES} mode={mode} onSetMode={(id) => setMode(id as 'auto' | Lane)}
           memVault={memVault} onSetMemVault={setMemVault} onOpenMemPanel={() => setMemPanel(true)}
           groundingBadge={groundingBadge}
@@ -2464,7 +2608,29 @@ export default function App() {
           t={t} purpose={purpose} name={name}
           onNameChange={setName}
           onGenerate={() => { void generate(); }}
+          onAdvanced={() => { setStudioSeed(null); advSpend.current.usd = 0; setView('docstudio'); }}
           onBack={() => setView('dashboard')}
+        />
+      )}
+
+      {/* ── Create: advanced document builder (plan → blocks → assemble) ── */}
+      {view === 'docstudio' && (
+        <DocStudio
+          key={studioSeed?.docId ?? 'fresh'}
+          name={name} purpose={purpose}
+          tier={docTier} setTier={setDocTier}
+          stylePresetId={docStyle}
+          memoryName={memMode === 'pick' ? memoryLabel(memVault) : undefined}
+          svgAllowed={docSvg}
+          images={docImages}
+          onOpenImages={() => setImgPanel(true)}
+          savedBuild={savedBuild}
+          initialBuild={studioSeed}
+          onCheckpoint={checkpointBuild}
+          runInfer={runAdvInfer}
+          resolveHtml={(h) => resolveDocHtml(h, docImages)}
+          onSave={saveAdvancedTake}
+          onBack={() => setView(studioSeed ? 'done' : 'dashboard')}
         />
       )}
 
@@ -2504,6 +2670,9 @@ export default function App() {
             const next = Math.max(...docVersions.map((v) => v.version), 0) + 1;
             void generate({ docId: curDocId || `${slugify(name) || 'document'}#${Date.now()}`, nextVersion: next });
           }}
+          onReopenStudio={curDocId && savedBuilds[curDocId]
+            ? () => { setStudioSeed(savedBuilds[curDocId]); advSpend.current.usd = 0; setView('docstudio'); }
+            : null}
         />
       )}
 

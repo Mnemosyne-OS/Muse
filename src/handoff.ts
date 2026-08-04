@@ -1437,6 +1437,241 @@ export function replaceImagePlaceholders(
   return out.replace(/\{\{IMG_\d+\}\}/g, '');
 }
 
+// ── Advanced document builder (plan → blocks → assemble) ────────────────────
+// The quick lane renders a whole document in one pass. The advanced mode makes
+// the plan VISIBLE and EDITABLE, then generates one section at a time — each
+// regenerable alone, with manual text and image blocks in between — and
+// assembles deterministically (the assembly itself costs zero credits).
+
+/** One planned section, as the human can edit it. */
+export type DocSection = { title: string; brief: string; form: string };
+export type DocOutline = { audience?: string; message?: string; sections: DocSection[] };
+
+/** One block of the document under construction. `gen` blocks carry the HTML
+ *  the model returned; `text`/`image` blocks carry raw material rendered
+ *  deterministically at assembly. Transient UI states (busy/error) are NOT
+ *  part of this type — a checkpoint must never resurrect a spinner. */
+export type DocBlock = {
+  id: string;
+  kind: 'gen' | 'text' | 'image';
+  title: string;
+  brief?: string;
+  form?: string;
+  html?: string;
+  text?: string;
+  /** Index into the take's picked images — the token is {{IMG_index+1}}. */
+  imgIndex?: number;
+  caption?: string;
+  remark?: string;
+};
+
+/** The whole builder state, checkpointed to the sandbox (spine MUSE_DOCBUILD,
+ *  latest wins) so a crash or a closed window never loses an evening's plan. */
+export type DocBuild = {
+  docbuild: true;
+  docId: string;
+  name: string;
+  purpose: string;
+  outline: DocOutline;
+  blocks: DocBlock[];
+  ts: number;
+};
+
+/**
+ * Parses the plan pass's own output contract (buildDocPlanPrompt):
+ *   AUDIENCE: … / MESSAGE: … / `1. <title> — <what> — form: <form>` / ANCHOR: n
+ * Tolerant on purpose — small models drift: numbered lines split on the em/en
+ * dash family, a missing `form:` tail is fine, AUDIENCE/MESSAGE optional.
+ * Returns null when not a single numbered section survives.
+ */
+export function parseDocPlan(text: string): DocOutline | null {
+  const out: DocOutline = { sections: [] };
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const label = /^(AUDIENCE|MESSAGE)\s*:\s*(.+)$/i.exec(line);
+    if (label) {
+      if (label[1].toUpperCase() === 'AUDIENCE') out.audience = label[2].trim();
+      else out.message = label[2].trim();
+      continue;
+    }
+    const num = /^\d{1,2}[.)]\s+(.+)$/.exec(line);
+    if (!num) continue;
+    const parts = num[1].split(/\s+[—–-]\s+/);
+    const title = (parts[0] ?? '').trim();
+    if (!title) continue;
+    let brief = '';
+    let form = '';
+    for (const p of parts.slice(1)) {
+      const f = /^forme?\s*:\s*(.+)$/i.exec(p.trim());
+      if (f) form = f[1].trim();
+      else brief = brief ? `${brief} — ${p.trim()}` : p.trim();
+    }
+    out.sections.push({ title, brief, form });
+  }
+  return out.sections.length > 0 ? out : null;
+}
+
+/** The outline back in the plan-text shape — fed to section prompts so the
+ *  model sees the whole arc while writing one piece of it. */
+export function outlineToPlanText(o: DocOutline): string {
+  const lines: string[] = [];
+  if (o.audience) lines.push(`AUDIENCE: ${o.audience}`);
+  if (o.message) lines.push(`MESSAGE: ${o.message}`);
+  o.sections.forEach((s, i) => {
+    lines.push(`${i + 1}. ${s.title}${s.brief ? ` — ${s.brief}` : ''}${s.form ? ` — form: ${s.form}` : ''}`);
+  });
+  return lines.join('\n');
+}
+
+/**
+ * ONE SECTION of the document, as an HTML FRAGMENT under a strict class
+ * contract — the shell stylesheet owns every visual decision, the model only
+ * writes structure. Prior sections arrive as text excerpts so the piece flows
+ * without repeating; the human remark (regeneration feedback) outranks all.
+ */
+export function buildDocSectionPrompt(o: {
+  name: string; purpose: string; planText: string; index: number;
+  section: DocSection; prior: string[]; remark?: string; memoryName?: string; svg?: boolean;
+}): string {
+  return `You are a document designer writing ONE SECTION of a larger HTML document. The document shell already provides ALL the CSS — you write STRUCTURE ONLY, using the allowed elements below.
+
+DOCUMENT: "${o.name}"
+INTENT: ${o.purpose}
+LANGUAGE: everything visible is in ${langInEnglish().toUpperCase()}.
+
+THE FULL PLAN (for coherence — you write ONLY section ${o.index + 1}):
+${o.planText}
+
+YOUR SECTION — ${o.index + 1}. ${o.section.title}${o.section.brief ? ` — ${o.section.brief}` : ''}${o.section.form ? ` — form: ${o.section.form}` : ''}
+${o.prior.length ? `\nALREADY WRITTEN (excerpts of the sections before yours — do NOT repeat them):\n${o.prior.map((p, i) => `- (${i + 1}) ${p}`).join('\n')}\n` : ''}${o.remark ? `\nMY NOTE — HIGHEST PRIORITY, this is why I asked for a rewrite: ${o.remark}\n` : ''}
+${o.memoryName
+    ? `GROUND IT: base every factual claim on MY MEMORY given to you as context (vault "${o.memoryName}"). Where the memory is silent, write that it is missing — NEVER invent a memory, a date, a name, a figure or a quote.`
+    : 'GROUND IT: if memory context is provided, base your factual claims on it. NEVER invent a date, a name, a figure or a quote.'}
+${o.svg ? `\nDIAGRAM — if a drawing genuinely clarifies THIS section (a flow, a comparison, a proportion), you may draw ONE inline SVG (a viewBox, currentColor or the inherited palette). Never a decorative one.\n` : ''}
+RULES:
+- Return ONLY an HTML fragment: exactly one <section class="sec"> … </section>. No <!doctype>, no <html>, no <head>, no <style>, no <script>, no code fence, no explanation.
+- Allowed inside: <h2> (the section title, once), <h3>, <p>, <ul>/<ol>/<li>, <blockquote>, <div class="cards"> holding 2-4 <div class="card"> of equal weight, <figure>/<figcaption>, <strong>, <em>, <span class="accent">, <a>, <table>/<tr>/<th>/<td>${o.svg ? ', <svg> (one at most)' : ''}.
+- NO inline style attributes, no classes other than sec/cards/card/accent — the shell decides how things look.
+- Write the amount the form calls for — never pad, never restate the plan.`;
+}
+
+/** Pulls the `<section>` fragment out of a model reply — fences stripped,
+ *  anything around the tags dropped; a tagless reply is wrapped rather than
+ *  discarded (losing a paid generation over formatting would be worse). */
+export function stripToSection(reply: string): string {
+  let s = reply.replace(/```[a-z]*\n?/gi, '').trim();
+  const start = s.search(/<section[\s>]/i);
+  const end = s.toLowerCase().lastIndexOf('</section>');
+  if (start !== -1 && end > start) return s.slice(start, end + '</section>'.length);
+  s = s.replace(/<\/?(!doctype|html|head|body)[^>]*>/gi, '').trim();
+  return s ? `<section class="sec">${s}</section>` : '';
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** A manual text block, rendered deterministically: blank lines split
+ *  paragraphs, `# `/`## ` open headings, `- ` runs become lists. Everything is
+ *  escaped — hand-typed text must never inject markup into the document. */
+export function textBlockHtml(text: string): string {
+  const paras = text.replace(/\r\n/g, '\n').split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const parts: string[] = [];
+  for (const p of paras) {
+    const lines = p.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.every((l) => l.startsWith('- '))) {
+      parts.push(`<ul>${lines.map((l) => `<li>${escapeHtml(l.slice(2))}</li>`).join('')}</ul>`);
+    } else if (lines[0].startsWith('## ')) {
+      parts.push(`<h3>${escapeHtml(lines[0].slice(3))}</h3>`);
+      if (lines.length > 1) parts.push(`<p>${lines.slice(1).map(escapeHtml).join('<br/>')}</p>`);
+    } else if (lines[0].startsWith('# ')) {
+      parts.push(`<h2>${escapeHtml(lines[0].slice(2))}</h2>`);
+      if (lines.length > 1) parts.push(`<p>${lines.slice(1).map(escapeHtml).join('<br/>')}</p>`);
+    } else {
+      parts.push(`<p>${lines.map(escapeHtml).join('<br/>')}</p>`);
+    }
+  }
+  return `<section class="sec">${parts.join('\n')}</section>`;
+}
+
+/** An image block: the {{IMG_n}} token (swapped for the data URI at view
+ *  time, exactly like the quick lane) inside a proper <figure>. */
+export function imageBlockHtml(imgIndex: number, caption?: string): string {
+  const cap = caption?.trim() ? `<figcaption>${escapeHtml(caption.trim())}</figcaption>` : '';
+  return `<section class="sec"><figure>{{IMG_${imgIndex + 1}}}${cap}</figure></section>`;
+}
+
+/**
+ * The deterministic shell stylesheet — the whole visual identity of an
+ * assembled document, derived from a style preset's palette/scheme (or a
+ * neutral fallback). Sections written under the class contract inherit all of
+ * it; that is what keeps ten separately-generated blocks reading as ONE piece.
+ */
+export function buildDocShellCss(o: { scheme?: 'dark' | 'light'; palette?: string[] } = {}): string {
+  const pal = o.palette ?? [];
+  const dark = (o.scheme ?? 'light') === 'dark';
+  const bg = pal[0] ?? (dark ? '#0B0E14' : '#FAF8F4');
+  const ink = dark ? '#ECEFF7' : (pal[1] ?? '#1B1B1F');
+  const accent = pal[2] ?? (dark ? '#7DD3FC' : '#B4531F');
+  const muted = pal[3] ?? (dark ? 'rgba(236,239,247,0.55)' : 'rgba(27,27,31,0.55)');
+  return `
+:root { color-scheme: ${dark ? 'dark' : 'light'}; }
+* { box-sizing: border-box; }
+body.doc { margin: 0; background: ${bg}; color: ${ink}; font: 16px/1.65 Georgia, 'Times New Roman', serif; -webkit-font-smoothing: antialiased; }
+.doc-head { max-width: 76ch; margin: 0 auto; padding: clamp(40px, 8vw, 88px) 24px 8px; }
+.doc-head h1 { font-size: clamp(2rem, 5.4vw, 2.9rem); line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 10px; }
+.doc-head .doc-sub { color: ${muted}; font-size: 1.02rem; margin: 0; }
+section.sec { max-width: 76ch; margin: 0 auto; padding: clamp(20px, 3.5vw, 34px) 24px; }
+section.sec + section.sec { border-top: 1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}; }
+h2 { font-size: 1.55rem; line-height: 1.25; margin: 0 0 14px; letter-spacing: -0.01em; }
+h3 { font-size: 1.08rem; margin: 22px 0 8px; }
+p { max-width: 70ch; margin: 0 0 14px; }
+ul, ol { margin: 0 0 14px; padding-left: 1.3em; }
+li { margin: 4px 0; }
+a { color: ${accent}; }
+blockquote { margin: 18px 0; padding: 6px 18px; border-left: 3px solid ${accent}; color: ${muted}; font-style: italic; }
+.accent { color: ${accent}; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin: 18px 0; }
+.card { border: 1px solid ${dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}; border-radius: 10px; padding: 16px; background: ${dark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'}; }
+.card :first-child { margin-top: 0; } .card :last-child { margin-bottom: 0; }
+figure { margin: 22px 0; text-align: center; }
+figure img { max-width: 100%; height: auto; border-radius: 8px; }
+figcaption { margin-top: 8px; font-size: 0.88rem; color: ${muted}; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.95rem; }
+th, td { border: 1px solid ${dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.14)'}; padding: 8px 10px; text-align: left; }
+svg { max-width: 100%; height: auto; }
+@media print {
+  body.doc { background: #fff; color: #111; }
+  section.sec { break-inside: avoid; }
+  a { color: inherit; }
+}`.trim();
+}
+
+/** Deterministic assembly — zero credits: the shell, the title block, then the
+ *  blocks in order. The result is the same self-contained single-file HTML the
+ *  quick lane produces, so history, versions, viewer and export just work. */
+export function assembleDoc(o: { title: string; subtitle?: string; css: string; blocksHtml: string[] }): string {
+  const sub = o.subtitle?.trim() ? `\n<p class="doc-sub">${escapeHtml(o.subtitle.trim())}</p>` : '';
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(o.title)}</title>
+<style>
+${o.css}
+</style>
+</head>
+<body class="doc">
+<header class="doc-head">
+<h1>${escapeHtml(o.title)}</h1>${sub}
+</header>
+${o.blocksHtml.join('\n')}
+</body>
+</html>`;
+}
+
 /** Optional support artifacts generated in-Muse into <appDir>/docs/ — the IDE
  *  agent reads them before coding. Deterministic prompts, model picked by the
  *  user (eco/standard/max) in the project board. */

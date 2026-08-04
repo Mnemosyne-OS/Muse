@@ -34,7 +34,7 @@ type T = (key: string, vars?: Record<string, string | number>) => string;
 
 export function OnboardingScreen({
   t, error, obStep, setObStep, os, setOs, ide, setIde, folder, installed, installables,
-  onPickFolder, onCompleteOnboarding, onOpenExternal, onInstallClick,
+  onPickFolder, onCompleteOnboarding, onDocsOnly, onOpenExternal, onInstallClick,
 }: {
   t: T;
   error: string;
@@ -49,6 +49,9 @@ export function OnboardingScreen({
   installables: Installable[];
   onPickFolder: () => void;
   onCompleteOnboarding: () => void;
+  /** "Documents only": finishes onboarding on the spot — no IDE, no app
+   *  space, no repo. The doc lane needs none of it, so none of it is asked. */
+  onDocsOnly: () => void;
   onOpenExternal: (url: string) => void;
   onInstallClick: (item: Installable) => void;
 }) {
@@ -64,7 +67,10 @@ export function OnboardingScreen({
           <Logo mode="intro" />
           <h1 style={S.h1}>{t('ob.welcome')}</h1>
           <p style={S.sub}>{t('ob.welcomeSub')}</p>
-          <button className="mu-btn mu-cta" style={S.primary} onClick={() => setObStep(1)}>{t('ob.configure')}</button>
+          {/* The fork Tony asked for: document-only people skip the whole IDE /
+              space / repo journey — their Muse is the studio, nothing else. */}
+          <button className="mu-btn mu-cta" style={S.primary} onClick={() => setObStep(1)}>{t('ob.fullCreate')}</button>
+          <button className="mu-btn mu-cta" style={{ ...S.primary, background: 'rgba(59,130,246,0.1)' }} onClick={onDocsOnly}>{t('ob.docsOnly')}</button>
           <button className="mu-btn" style={S.back} onClick={onCompleteOnboarding}>{t('ob.skip')}</button>
         </div>
       )}

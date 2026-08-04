@@ -43,13 +43,15 @@ export function ReadyScreen({ t }: { t: T }) {
 
 /** Naming screen: the last step before generation — asks for a name, then
  *  kicks off `onGenerate` (Enter or the primary button, both gated on a
- *  non-empty trimmed name). */
-export function NameScreen({ t, purpose, name, onNameChange, onGenerate, onBack }: {
+ *  non-empty trimmed name). `onAdvanced` opens the block-by-block builder
+ *  instead of the one-shot render — same gate, quieter affordance. */
+export function NameScreen({ t, purpose, name, onNameChange, onGenerate, onAdvanced, onBack }: {
   t: T;
   purpose: string;
   name: string;
   onNameChange: (name: string) => void;
   onGenerate: () => void;
+  onAdvanced?: () => void;
   onBack: () => void;
 }) {
   return (
@@ -64,6 +66,15 @@ export function NameScreen({ t, purpose, name, onNameChange, onGenerate, onBack 
         onKeyDown={(e) => e.key === 'Enter' && name.trim() && onGenerate()}
       />
       <button style={btn(!name.trim())} disabled={!name.trim()} onClick={onGenerate}>{t('name.create')}</button>
+      {onAdvanced && (
+        <button
+          style={{ ...S.linkBtn, opacity: name.trim() ? 1 : 0.45, cursor: name.trim() ? 'pointer' : 'not-allowed' }}
+          disabled={!name.trim()}
+          onClick={onAdvanced}
+        >
+          {t('name.advanced')}
+        </button>
+      )}
       <button style={S.back} onClick={onBack}>{t('name.back')}</button>
     </div>
   );

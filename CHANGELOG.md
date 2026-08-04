@@ -9,6 +9,31 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`, 
 stamp written into every scaffolded project. `package.json` must carry the same value;
 the build fails on drift (`scripts/check-version.mjs`).
 
+## [1.0.0-beta.3] — 2026-08-04
+
+The document release.
+
+- **Advanced document mode** — build a document instead of receiving it in one
+  shot: an editable **plan** (proposed by Muse from your intent and your memory,
+  or started from scratch at zero cost), then **blocks** — each section generated
+  alone under a shared style contract, regenerable alone with a note that outranks
+  everything, with manual text blocks and image blocks in between (video/audio
+  announced as coming, never faked) — then a deterministic, zero-credit
+  **assembly** into the same self-contained HTML as the quick mode.
+- **The door stays open** — a generated document reopens in the studio from its
+  own screen: edit a section, regenerate it alone, save the next version of the
+  same document. Builder state is checkpointed per document (crash-safe, resumable).
+- **Documents-only Muse** — the onboarding welcome asks what you create: choosing
+  "documents only" skips the IDE / app-space / repo steps entirely and strips the
+  dashboard down to the studio (one lane, no app tiles). Reversible both ways,
+  persisted.
+- The advanced mode is reachable straight from the dashboard (Document chip),
+  seeded with whatever intent is typed.
+- Per-block cost is metered into one summed figure on the saved version.
+- Fixed on the way: declining the resume banner could reuse the previous
+  document's id — a brand-new document would have appended its versions to the
+  old one.
+
 ## [1.0.0-beta.2] — 2026-08-03
 
 - The vault tile counts **Projects** (localized EN/FR/ES), no longer "Apps" — a Muse

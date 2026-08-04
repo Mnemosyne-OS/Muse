@@ -17,7 +17,7 @@ export function DoneScreen({
   regenOpen, setRegenOpen, docSaving, folder, savedDocPath, docMsg, docOk,
   docTier, setDocTier, docStyle, setDocStyle, docFormat, setDocFormat, docImages, docSvg,
   docSystem, docSystemMissing, onPickDocSystem,
-  onSaveDocument, onOpenSavedDoc, onBack, onSelectVersion, onOpenImgPanel, onToggleSvg, onRegenerate,
+  onSaveDocument, onOpenSavedDoc, onBack, onSelectVersion, onOpenImgPanel, onToggleSvg, onRegenerate, onReopenStudio,
 }: {
   t: T;
   lang: LangCode;
@@ -57,6 +57,9 @@ export function DoneScreen({
   onOpenImgPanel: () => void;
   onToggleSvg: () => void;
   onRegenerate: () => void;
+  /** Back into the block-by-block builder — null when this document has no
+   *  builder checkpoint to return to (quick-lane docs, lost checkpoints). */
+  onReopenStudio: (() => void) | null;
 }) {
   const nextVersion = Math.max(...docVersions.map((v) => v.version), 0) + 1;
   return (
@@ -99,6 +102,13 @@ export function DoneScreen({
           {purpose && <p style={S.doneSub} title={purpose}>{purpose}</p>}
         </div>
         <div style={S.headActions}>
+          {onReopenStudio && (
+            <button
+              style={S.secondary}
+              title={t('studio.reopenHint')}
+              onClick={onReopenStudio}
+            >🧱 {t('studio.reopen')}</button>
+          )}
           <button
             style={{ ...S.secondary, ...(regenOpen ? { color: '#7dd3fc', borderColor: 'rgba(59,130,246,0.5)' } : {}) }}
             title={t('doc.regen')}

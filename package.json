@@ -1,6 +1,6 @@
 {
   "name": "@mnemosyne-plugins/muse",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "private": true,
   "repository": "https://github.com/Mnemosyne-OS/Muse",
   "type": "module",

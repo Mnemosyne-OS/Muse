@@ -2,6 +2,7 @@
 // resume banner, stats, and the project history list (with per-version
 // chips and cost tooltips). Extracted out of App.tsx's view chain — owns
 // no state, just renders what App() already tracks.
+import { useRef } from 'react';
 import { STYLE_PRESETS } from '../DesignStudio';
 import { GBan, GClock, GClose, GCost, GForward, GGlobe, GLaunch, GMemory, GSliders, GTrash, GPalette } from '../Glyphs';
 import { BookIcon, ChannelBadge, Logo, S } from '../Chrome';
@@ -14,7 +15,8 @@ type Mode = { id: string; Icon: (p: { size?: number }) => JSX.Element; key: stri
 type Lane = 'doc' | 'site' | 'cartridge';
 
 export function DashboardScreen({
-  t, lang, error, onOpenDocs, onOpenDesignPref, onQuickLaunch,
+  t, lang, error, onOpenDocs, onOpenDesignPref, onQuickLaunch, onAdvancedDoc,
+  focus, onEnableFull,
   modes, mode, onSetMode,
   memVault, onSetMemVault, onOpenMemPanel, groundingBadge, laneIcon,
   savedFraming, onResumeFraming, onDismissFraming,
@@ -29,6 +31,11 @@ export function DashboardScreen({
   /** Opens the studio on the GLOBAL design preference — no project needed. */
   onOpenDesignPref: () => void;
   onQuickLaunch: (value: string) => void;
+  /** Opens the block-by-block document builder, seeded with the input text. */
+  onAdvancedDoc: (input: string) => void;
+  /** 'doc' = documents-only Muse: one lane, no app chrome on this screen. */
+  focus: 'doc' | 'full';
+  onEnableFull: () => void;
   modes: Mode[];
   mode: string;
   onSetMode: (id: string) => void;
@@ -53,6 +60,9 @@ export function DashboardScreen({
   launchOk: boolean | null;
   onDeleteProject: (p: Project) => void;
 }) {
+  // Uncontrolled on purpose (matches the Enter handler below) — the advanced
+  // button just reads whatever intent is typed when it is clicked.
+  const quickRef = useRef<HTMLInputElement>(null);
   return (
     <div style={S.dash}>
       <div style={S.dashInner}>
@@ -78,6 +88,7 @@ export function DashboardScreen({
       <section style={S.quick}>
         <label style={S.quickLabel}>{t('dash.question')}</label>
         <input
+          ref={quickRef}
           autoFocus style={S.quickInput}
           placeholder={t('dash.placeholder')}
           onKeyDown={(e) => {
@@ -85,9 +96,11 @@ export function DashboardScreen({
             if (e.key === 'Enter' && v.trim()) onQuickLaunch(v);
           }}
         />
-        {/* Router chips: Auto lets the coach route; the human can force a lane. */}
+        {/* Router chips: Auto lets the coach route; the human can force a lane.
+            A documents-only Muse has ONE lane — the chips disappear entirely
+            and a discreet link offers the full studio instead. */}
         <div style={S.modeRow}>
-          {modes.map((m) => (
+          {focus === 'full' && modes.map((m) => (
             <button
               key={m.id}
               className="mu-btn"
@@ -95,6 +108,20 @@ export function DashboardScreen({
               onClick={() => onSetMode(m.id)}
             ><m.Icon size={12} />{t(m.key)}</button>
           ))}
+          {/* The block-by-block builder — surfaced HERE because this is where
+              Tony looked for it (the name-screen link alone was undiscoverable). */}
+          {(focus === 'doc' || mode === 'doc') && (
+            <button
+              className="mu-btn"
+              style={{ ...S.modeChip, borderStyle: 'dashed' }}
+              onClick={() => onAdvancedDoc(quickRef.current?.value ?? '')}
+            >🧱 {t('dash.advancedDoc')}</button>
+          )}
+          {focus === 'doc' && (
+            <button className="mu-btn" style={{ ...S.modeChip, opacity: 0.65 }} onClick={onEnableFull}>
+              + {t('dash.enableFull')}
+            </button>
+          )}
         </div>
         {/* Memory source: the host scopes RAG to ONE vault (model.infer →
             vaultId) or runs federated — so this is a single choice, not a
@@ -134,15 +161,21 @@ export function DashboardScreen({
         </div>
       )}
 
+      {/* App tiles mean nothing to a documents-only Muse — only the library
+          count remains, so the screen talks about what the human makes. */}
       <section style={S.stats}>
-        <div style={S.statCard}>
-          <span style={S.statNum}>{toPublishCount}</span>
-          <span style={S.statLabel}>{t(toPublishCount > 1 ? 'dash.statAppsPlural' : 'dash.statApps')}</span>
-        </div>
-        <div style={S.statCard}>
-          <span style={S.statNum}>{inProgressCount}</span>
-          <span style={S.statLabel}>{t('dash.statDrafts')}</span>
-        </div>
+        {focus === 'full' && (
+          <>
+            <div style={S.statCard}>
+              <span style={S.statNum}>{toPublishCount}</span>
+              <span style={S.statLabel}>{t(toPublishCount > 1 ? 'dash.statAppsPlural' : 'dash.statApps')}</span>
+            </div>
+            <div style={S.statCard}>
+              <span style={S.statNum}>{inProgressCount}</span>
+              <span style={S.statLabel}>{t('dash.statDrafts')}</span>
+            </div>
+          </>
+        )}
         <div style={S.statCard}>
           <span style={S.statNum}>{docsCount}</span>
           <span style={S.statLabel}>{t('dash.statDocs')}</span>

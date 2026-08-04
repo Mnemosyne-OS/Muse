@@ -456,6 +456,69 @@ setPromptLanguage('fr'); // restore a sane default for the rest of the suite
     'isOdCatalog: libraries imported before the catalogue existed (no kind) stay plain repos');
 }
 
+// ── Advanced document builder (plan → blocks → assemble) ────────────────────
+{
+  const { parseDocPlan, outlineToPlanText, stripToSection, textBlockHtml, imageBlockHtml, buildDocShellCss, assembleDoc, buildDocSectionPrompt } =
+    await import('../src/handoff.ts');
+
+  // parseDocPlan — the plan pass's own contract, and its degraded forms.
+  const plan = parseDocPlan(`AUDIENCE: curious founders
+MESSAGE: memory is the moat
+1. The stakes — why context dies — form: running text
+2. The gearbox — how retrieval shifts — form: figure
+ANCHOR: 2`);
+  ok(plan !== null && plan.sections.length === 2, 'parseDocPlan: two numbered sections parsed');
+  eq(plan?.sections[0].title, 'The stakes', 'parseDocPlan: title before the first dash');
+  eq(plan?.sections[1].form, 'figure', 'parseDocPlan: form label captured');
+  eq(plan?.audience, 'curious founders', 'parseDocPlan: audience line kept');
+  ok(parseDocPlan('no numbered lines at all') === null, 'parseDocPlan: garbage → null, never a fake outline');
+  const short = parseDocPlan('1. Seul titre');
+  ok(short !== null && short.sections[0].brief === '' && short.sections[0].form === '',
+    'parseDocPlan: a bare numbered title still counts (small models drift)');
+
+  // Roundtrip: the outline fed back to section prompts keeps order + labels.
+  const rt = outlineToPlanText(plan);
+  ok(rt.includes('1. The stakes — why context dies — form: running text'), 'outlineToPlanText: roundtrips the numbered shape');
+
+  // stripToSection — fenced, tagless and noisy replies all land on one <section>.
+  eq(stripToSection('```html\n<section class="sec"><h2>A</h2></section>\n```'), '<section class="sec"><h2>A</h2></section>',
+    'stripToSection: fences stripped');
+  ok(stripToSection('Sure! Here is it:\n<section class="sec"><p>x</p></section>\nHope it helps').startsWith('<section'),
+    'stripToSection: chatter around the tags dropped');
+  ok(stripToSection('<p>bare paragraph</p>').startsWith('<section class="sec">'),
+    'stripToSection: tagless reply wrapped, not discarded');
+  eq(stripToSection(''), '', 'stripToSection: empty reply stays empty');
+
+  // textBlockHtml — escaped, structured, deterministic.
+  const tb = textBlockHtml('# Title\n\nfirst para\nsecond line\n\n- a\n- b <script>');
+  ok(tb.includes('<h2>Title</h2>'), 'textBlockHtml: # opens a heading');
+  ok(tb.includes('first para<br/>second line'), 'textBlockHtml: single newline = <br/>');
+  ok(tb.includes('<li>b &lt;script&gt;</li>'), 'textBlockHtml: hand-typed markup is escaped, never injected');
+
+  // imageBlockHtml — the token contract the viewer swap relies on.
+  ok(imageBlockHtml(2, 'the <bench> curve').includes('{{IMG_3}}'), 'imageBlockHtml: index 2 → token IMG_3');
+  ok(imageBlockHtml(0, 'a & b').includes('a &amp; b'), 'imageBlockHtml: caption escaped');
+  ok(!imageBlockHtml(0).includes('figcaption'), 'imageBlockHtml: no empty figcaption');
+
+  // Shell CSS + assembly — one palette in, one self-contained document out.
+  const css = buildDocShellCss({ scheme: 'dark', palette: ['#05040A', '#7B5EA7', '#C9A6FF', '#C5973A'] });
+  ok(css.includes('#05040A') && css.includes('#C9A6FF'), 'buildDocShellCss: palette drives bg + accent');
+  ok(css.includes('@media print'), 'buildDocShellCss: print rule present');
+  const doc = assembleDoc({ title: 'My <doc>', subtitle: 'the point', css, blocksHtml: ['<section class="sec">one</section>', '<section class="sec">two</section>'] });
+  ok(doc.startsWith('<!doctype html>'), 'assembleDoc: complete document');
+  ok(doc.includes('My &lt;doc&gt;'), 'assembleDoc: title escaped');
+  ok(doc.indexOf('one') < doc.indexOf('two'), 'assembleDoc: blocks keep their order');
+
+  // Section prompt — the remark outranks, the fragment contract is stated.
+  const sp = buildDocSectionPrompt({
+    name: 'D', purpose: 'p', planText: '1. A', index: 0,
+    section: { title: 'A', brief: 'b', form: 'list' }, prior: ['already said'], remark: 'shorter!',
+  });
+  ok(sp.includes('MY NOTE — HIGHEST PRIORITY') && sp.includes('shorter!'), 'buildDocSectionPrompt: human remark carried at top priority');
+  ok(sp.includes('exactly one <section class="sec">'), 'buildDocSectionPrompt: fragment contract stated');
+  ok(sp.includes('already said'), 'buildDocSectionPrompt: prior excerpts passed');
+}
+
 // ── Report ───────────────────────────────────────────────────────────────────
 if (failures.length) {
   console.error(`✗ ${failures.length}/${pass + failures.length} failed:\n`);

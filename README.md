@@ -1,6 +1,6 @@
 # Muse <img src="icon.svg" width="28" align="top" alt=""> — neural coding for Mnemosyne OS
 
-![Version](https://img.shields.io/badge/version-1.0.0--beta.2-blue)
+![Version](https://img.shields.io/badge/version-1.0.0--beta.3-blue)
 ![Status](https://img.shields.io/badge/status-beta-7dd3fc)
 ![Platform](https://img.shields.io/badge/platform-Mnemosyne%20OS-8b7cf0)
 
