@@ -57,3 +57,8 @@ three run as part of `build`.
 in this repo and modifications are welcome, as long as the cartridge runs within the
 Mnemosyne OS ecosystem. Standalone hosting or redistribution outside a Mnemosyne OS
 instance requires written consent.
+
+---
+
+<sub>**[Mnemosyne OS](https://mnemosyne-os.io)** — the sovereign, local-first memory OS this cartridge runs in.
+Get it at [mnemosyne-os.io/download](https://mnemosyne-os.io/download), install cartridges from the built-in MnemoHub store, or [build your own](https://mnemosyne-os.io/dev).</sub>
