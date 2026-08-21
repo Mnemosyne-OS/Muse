@@ -1,12 +1,12 @@
 {
   "common": {
     "cancel": "Cancel",
-    "close": "close",
+    "close": "✕ Close",
     "done": "Done",
     "back": "Dashboard",
     "openFolder": "Open the folder",
-    "copied": "Copied!",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "closeLabel": "Close"
   },
   "ready": {
     "title": "Your space is ready"
@@ -57,7 +57,6 @@
     "versions": "{{count}} versions",
     "launchTitle": "Open “{{name}}” in its Mnemosyne window",
     "deleteTitle": "Delete “{{name}}” from my projects",
-    "openVersion": "Open v{{n}}",
     "docLibrary": "Mnemosyne library"
   },
   "mem": {
@@ -121,7 +120,8 @@
     "saveTitleReady": "Write the document into your Muse space",
     "saveTitleNeedSpace": "Finish onboarding first so you have a space",
     "openPrintTitle": "Open the file (print / PDF from there)",
-    "emptyReply": "The model returned nothing."
+    "emptyReply": "The model returned nothing.",
+    "diagramView": "🧜 Diagram {{n}} · view ↗"
   },
   "cost": {
     "free": "free (local)",
@@ -163,7 +163,8 @@
       "next": "next",
       "soon": "soon",
       "optional": "optional"
-    }
+    },
+    "unnamedApp": "your app"
   },
   "truth": {
     "title": "Truth pass",
@@ -215,7 +216,6 @@
   "ob": {
     "welcome": "Welcome to Muse",
     "welcomeSub": "Three steps to set up your machine, once. Then you create apps by intention.",
-    "configure": "Set up",
     "fullCreate": "🧩 I want to create — documents, sites & apps",
     "docsOnly": "📄 I only want to create documents",
     "skip": "Skip onboarding",
@@ -296,7 +296,8 @@
     "imagesPickFolderHint": "Pick the folder where your pictures actually are (Pictures, Documents…) — this never scans your Muse app space, which is full of the installed apps' own icons and screenshots.",
     "imagesCaptionLabel": "What each picture shows — helps the model place it well",
     "imagesCaptionPlaceholder": "e.g. the team on launch day",
-    "svgToggle": "✏️ Model-drawn diagrams (SVG)"
+    "svgToggle": "✏️ Model-drawn diagrams (SVG)",
+    "sendAnswer": "Send my answer"
   },
   "tier": {
     "eco": "🌱 Eco · local",
@@ -456,7 +457,12 @@
     "saving": "Saving…",
     "save": "💾 Save as a version",
     "blockEmpty": "The model returned an empty section — try again.",
-    "newSection": "New section"
+    "newSection": "New section",
+    "dismissResume": "Dismiss this resume offer",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeSection": "Remove this section",
+    "removeBlock": "Remove this block"
   },
   "install": {
     "confirmTitle": "Allow the install?",
@@ -488,7 +494,6 @@
     "gitNotInstalled": "Git isn’t installed on your machine. Install Git, or use manual mode (copy the command).",
     "cloneUnavailable": "Automatic cloning isn’t available here. Use manual mode (copy the command).",
     "cloneSlow": "The clone is taking too long (slow network?). Try again in a minute, or use manual mode.",
-    "bigRepoWait": "Big repo — the clone keeps going in the background, hang on…",
     "cloningInProgress": "Cloning in progress… ({{n}} item(s))"
   },
   "verity": {
@@ -503,7 +508,6 @@
     "fixPromptCopied": "Repair order copied (round {{n}}){{noteSuffix}} — paste it into your IDE, then paste its reply back here.",
     "fixPromptWithNote": ", your remark up top",
     "fixCopyBlocked": "Copy blocked — open the report and copy the alerts by hand.",
-    "adaptedButtonsPreview": "Adapted buttons preview",
     "yourAppFallback": "Your app",
     "billedTitle": "Cost actually billed over {{n}} version(s)",
     "billedUnmeasured": " · {{n}} unmeasured: local or personal key"
@@ -581,7 +585,10 @@
     "openFolderFailed": "Could not open the folder: {{error}}",
     "artifactFailed": "Could not generate the artifact: {{error}}",
     "deleteFailed": "Could not delete: {{error}}",
-    "retry": "↻ Retry"
+    "retry": "↻ Retry",
+    "homeUnknown": "user profile not found from your space",
+    "mcpAutoFailed": "Not possible: {{error}}. Switch to manual mode (copy the snippet).",
+    "archiveFailed": "Could not archive: {{error}}"
   },
   "mix": {
     "tabSystems": "Systems",
@@ -630,5 +637,97 @@
     "unset": "From the system",
     "fromSystem": "— from the design system —",
     "none": "No family from the list was detected. The design system’s typography is used."
+  },
+  "style": {
+    "desc": {
+      "mnemosyne": "Mnemonic violet · grain · Playfair + Space Grotesk",
+      "dark-luxury": "Warm black · gold shimmer · italic serif · slow transitions",
+      "brutalist": "Raw · massive type · offset shadows · zero radius",
+      "generative": "Animated orbs · glassmorphism · organic blobs · particles",
+      "paper-ink": "Off-white · editorial typography · brick red · paper texture",
+      "mineral-light": "Sand · stone · clay · Aesop / Muji · organic calm",
+      "acid-light": "Pure white · acid yellow · Bebas Neue · offset shadows · rave culture",
+      "swiss": "Mathematical grid · Helvetica · signal red · multiples of 8"
+    }
+  },
+  "fx": {
+    "label": {
+      "glow": "✨ Neon glow",
+      "glass": "🌫 Glass / blur",
+      "gradients": "🌊 Gradients",
+      "motion": "🎞 Soft animations",
+      "hard-shadows": "⬛ Hard shadows"
+    }
+  },
+  "ds": {
+    "title": "Design studio",
+    "subPre": "{{name}} — your choices go out in",
+    "subPost": ", the IDE agent applies them as they are.",
+    "back": "← Back to the project",
+    "tabStyles": "🖼 Styles",
+    "tabColors": "🎡 Colours",
+    "tabFx": "✨ Effects",
+    "tabTrends": "🔮 Trends",
+    "wheelTitle": "Colour wheel — click your hue",
+    "harmony": {
+      "analogous": "Analogous",
+      "complementary": "Complementary",
+      "triadic": "Triad",
+      "mono": "Mono"
+    },
+    "rolesTitle": "Role palette — computed harmony",
+    "role": {
+      "base": "Base",
+      "accent": "Accent {{n}}",
+      "background": "Background",
+      "surface": "Surface",
+      "text": "Text"
+    },
+    "schemeHint": "The light/dark theme follows the chosen style ({{name}}).",
+    "schemeNone": "none → dark",
+    "useStyle": "Use “{{name}}”",
+    "styleChosen": "✓ Style chosen — click to remove",
+    "fxTitle": "Effects you want — the agent respects them (and adds none of its own)",
+    "trendsTitle": "🔮 Trend check — soon",
+    "trendsBody": "The slot is reserved: Pinterest scraping, moodboards, current trends, design articles. You will tick what inspires you and the IDE agent will get your references along with the tokens.",
+    "saving": "⏳ Saving…",
+    "saved": "✓ Design saved",
+    "save": "💾 Save the design",
+    "viewTokens": "👁 view the tokens",
+    "footStyle": "Style: {{name}}",
+    "footStyleNone": "Style: none",
+    "mock": {
+      "mnemosynePre": "Memory becomes",
+      "mnemosyneAccent": "creation",
+      "luxuryEyebrow": "House · Collection",
+      "luxuryTitle": "Dark elegance",
+      "luxurySignature": "Signature",
+      "brutalistTitle": "Raw—",
+      "brutalistCard": "Zero radius.",
+      "brutalistTicker": "Raw · massive type · offset shadows",
+      "generativeTitle": "Alive by default",
+      "generativeCta": "Generate →",
+      "generativeTag1": "orbs",
+      "generativeTag2": "blobs",
+      "generativeTag3": "particles",
+      "paperEyebrow": "Edition · No. 12",
+      "paperWhen": "this morning",
+      "paperTitle": "The logbook of a memory",
+      "paperQuote": "“The margin speaks”",
+      "paperFoot": "PAPER — INK",
+      "mineralNav1": "objects",
+      "mineralNav2": "rituals",
+      "mineralNav3": "care",
+      "mineralTitle": "Mineral calm",
+      "mineralCta": "Discover",
+      "mineralAlt": "The material",
+      "acidEyebrow": "Rave · Culture · 24/7",
+      "acidCta": "Enter",
+      "acidAlt": "Line-up",
+      "acidTicker": "★ tonight ★ tomorrow ★ always",
+      "swissGrid": "Grid — 8pt",
+      "swissTitle1": "Grid &",
+      "swissTitle2": "reason."
+    }
   }
 }

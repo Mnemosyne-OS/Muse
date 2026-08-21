@@ -1,12 +1,12 @@
 {
   "common": {
     "cancel": "Cancelar",
-    "close": "cerrar",
+    "close": "✕ Cerrar",
     "done": "Listo",
     "back": "Panel",
     "openFolder": "Abrir la carpeta",
-    "copied": "¡Copiado!",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "closeLabel": "Cerrar"
   },
   "ready": {
     "title": "Tu espacio está listo"
@@ -57,7 +57,6 @@
     "versions": "{{count}} versiones",
     "launchTitle": "Abrir «{{name}}» en su ventana Mnemosyne",
     "deleteTitle": "Eliminar «{{name}}» de mis proyectos",
-    "openVersion": "Abrir la v{{n}}",
     "docLibrary": "Biblioteca Mnemosyne"
   },
   "mem": {
@@ -121,7 +120,8 @@
     "saveTitleReady": "Escribir el documento en tu espacio Muse",
     "saveTitleNeedSpace": "Termina primero el onboarding para tener un espacio",
     "openPrintTitle": "Abrir el archivo (imprimir / PDF desde ahí)",
-    "emptyReply": "El modelo no devolvió nada."
+    "emptyReply": "El modelo no devolvió nada.",
+    "diagramView": "🧜 Diagrama {{n}} · visualizar ↗"
   },
   "cost": {
     "free": "gratis (local)",
@@ -163,7 +163,8 @@
       "next": "próximo",
       "soon": "pronto",
       "optional": "opcional"
-    }
+    },
+    "unnamedApp": "tu app"
   },
   "truth": {
     "title": "Pase de verdad",
@@ -215,7 +216,6 @@
   "ob": {
     "welcome": "Bienvenido a Muse",
     "welcomeSub": "Preparamos tu máquina en 3 pasos, una sola vez. Después creas apps por intención.",
-    "configure": "Configurar",
     "fullCreate": "🧩 Quiero crear — documentos, sitios y apps",
     "docsOnly": "📄 Solo quiero crear documentos",
     "skip": "Saltar el onboarding",
@@ -296,7 +296,8 @@
     "imagesPickFolderHint": "Elige la carpeta donde están REALMENTE tus imágenes (Imágenes, Documentos…) — esto nunca escanea tu espacio Muse, lleno de los iconos y capturas de las apps instaladas.",
     "imagesCaptionLabel": "Qué muestra cada imagen — ayuda al modelo a colocarla bien",
     "imagesCaptionPlaceholder": "ej. el equipo el día del lanzamiento",
-    "svgToggle": "✏️ Diagramas dibujados por el modelo (SVG)"
+    "svgToggle": "✏️ Diagramas dibujados por el modelo (SVG)",
+    "sendAnswer": "Enviar mi respuesta"
   },
   "tier": {
     "eco": "🌱 Eco · local",
@@ -456,7 +457,12 @@
     "saving": "Guardando…",
     "save": "💾 Guardar como versión",
     "blockEmpty": "El modelo devolvió una sección vacía — inténtalo de nuevo.",
-    "newSection": "Nueva sección"
+    "newSection": "Nueva sección",
+    "dismissResume": "Descartar esta reanudación",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "removeSection": "Quitar esta sección",
+    "removeBlock": "Quitar este bloque"
   },
   "install": {
     "confirmTitle": "¿Permitir la instalación?",
@@ -488,7 +494,6 @@
     "gitNotInstalled": "Git no está instalado en tu máquina. Instala Git, o usa el modo manual (copiar el comando).",
     "cloneUnavailable": "La clonación automática no está disponible aquí. Usa el modo manual (copiar el comando).",
     "cloneSlow": "El clon está tardando demasiado (¿red lenta?). Inténtalo de nuevo en un minuto, o usa el modo manual.",
-    "bigRepoWait": "Repositorio grande — el clon sigue en segundo plano, paciencia…",
     "cloningInProgress": "Clonando… ({{n}} elemento(s))"
   },
   "verity": {
@@ -503,7 +508,6 @@
     "fixPromptCopied": "Orden de reparación copiada (ronda {{n}}){{noteSuffix}} — pégalo en tu IDE, y luego pega su respuesta aquí.",
     "fixPromptWithNote": ", tu comentario primero",
     "fixCopyBlocked": "Copia bloqueada — abre el informe y copia las alertas a mano.",
-    "adaptedButtonsPreview": "Vista previa de los botones adaptados",
     "yourAppFallback": "Tu app",
     "billedTitle": "Coste realmente facturado en {{n}} versión(es)",
     "billedUnmeasured": " · {{n}} sin medir: local o clave personal"
@@ -581,7 +585,10 @@
     "openFolderFailed": "No se pudo abrir la carpeta: {{error}}",
     "artifactFailed": "No se pudo generar el artefacto: {{error}}",
     "deleteFailed": "No se pudo borrar: {{error}}",
-    "retry": "↻ Reintentar"
+    "retry": "↻ Reintentar",
+    "homeUnknown": "perfil de usuario no encontrado desde tu espacio",
+    "mcpAutoFailed": "Imposible: {{error}}. Pasa al modo manual (copiar el snippet).",
+    "archiveFailed": "No se pudo archivar: {{error}}"
   },
   "mix": {
     "tabSystems": "Sistemas",
@@ -630,5 +637,97 @@
     "unset": "Del sistema",
     "fromSystem": "— del sistema de diseño —",
     "none": "No se detectó ninguna familia de la lista. Se usa la tipografía del sistema de diseño."
+  },
+  "style": {
+    "desc": {
+      "mnemosyne": "Violeta mnémico · grano · Playfair + Space Grotesk",
+      "dark-luxury": "Negro cálido · brillo dorado · serif itálica · transiciones lentas",
+      "brutalist": "Crudo · tipografía masiva · sombras desplazadas · cero redondeo",
+      "generative": "Orbes animados · glassmorphism · blobs orgánicos · partículas",
+      "paper-ink": "Blanco roto · tipografía editorial · rojo teja · textura de papel",
+      "mineral-light": "Arena · piedra · arcilla · Aesop / Muji · calma orgánica",
+      "acid-light": "Blanco puro · amarillo ácido · Bebas Neue · sombras desplazadas · cultura rave",
+      "swiss": "Retícula matemática · Helvetica · rojo señal · múltiplos de 8"
+    }
+  },
+  "fx": {
+    "label": {
+      "glow": "✨ Glow neón",
+      "glass": "🌫 Vidrio / blur",
+      "gradients": "🌊 Degradados",
+      "motion": "🎞 Animaciones suaves",
+      "hard-shadows": "⬛ Sombras duras"
+    }
+  },
+  "ds": {
+    "title": "Estudio de diseño",
+    "subPre": "{{name}} — tus elecciones salen en",
+    "subPost": ", el agente IDE las aplica tal cual.",
+    "back": "← Volver al proyecto",
+    "tabStyles": "🖼 Estilos",
+    "tabColors": "🎡 Colores",
+    "tabFx": "✨ Efectos",
+    "tabTrends": "🔮 Tendencias",
+    "wheelTitle": "Rueda cromática — haz clic en tu tono",
+    "harmony": {
+      "analogous": "Análogo",
+      "complementary": "Complementario",
+      "triadic": "Tríada",
+      "mono": "Mono"
+    },
+    "rolesTitle": "Paleta de roles — concordancia calculada",
+    "role": {
+      "base": "Base",
+      "accent": "Acento {{n}}",
+      "background": "Fondo",
+      "surface": "Superficie",
+      "text": "Texto"
+    },
+    "schemeHint": "El tema claro/oscuro sigue el estilo elegido ({{name}}).",
+    "schemeNone": "ninguno → oscuro",
+    "useStyle": "Usar «{{name}}»",
+    "styleChosen": "✓ Estilo elegido — clic para quitar",
+    "fxTitle": "Efectos deseados — el agente los respeta (y no añade otros)",
+    "trendsTitle": "🔮 Chequeo de tendencias — pronto",
+    "trendsBody": "El espacio está reservado: scraping de Pinterest, moodboards, tendencias del momento, artículos de diseño. Marcarás lo que te inspire y el agente IDE recibirá tus referencias junto con los tokens.",
+    "saving": "⏳ Guardando…",
+    "saved": "✓ Diseño guardado",
+    "save": "💾 Guardar el diseño",
+    "viewTokens": "👁 ver los tokens",
+    "footStyle": "Estilo: {{name}}",
+    "footStyleNone": "Estilo: ninguno",
+    "mock": {
+      "mnemosynePre": "La memoria se vuelve",
+      "mnemosyneAccent": "creación",
+      "luxuryEyebrow": "Casa · Colección",
+      "luxuryTitle": "La elegancia oscura",
+      "luxurySignature": "Firma",
+      "brutalistTitle": "Bruto—",
+      "brutalistCard": "Cero redondeo.",
+      "brutalistTicker": "Crudo · tipografía masiva · sombras desplazadas",
+      "generativeTitle": "Vivo por defecto",
+      "generativeCta": "Generar →",
+      "generativeTag1": "orbes",
+      "generativeTag2": "blobs",
+      "generativeTag3": "partículas",
+      "paperEyebrow": "Edición · N.º 12",
+      "paperWhen": "esta mañana",
+      "paperTitle": "El cuaderno de bitácora de una memoria",
+      "paperQuote": "«El margen habla»",
+      "paperFoot": "PAPEL — TINTA",
+      "mineralNav1": "objetos",
+      "mineralNav2": "rituales",
+      "mineralNav3": "cuidado",
+      "mineralTitle": "Calma mineral",
+      "mineralCta": "Descubrir",
+      "mineralAlt": "La materia",
+      "acidEyebrow": "Rave · Cultura · 24/7",
+      "acidCta": "Entrar",
+      "acidAlt": "Line-up",
+      "acidTicker": "★ esta noche ★ mañana ★ siempre",
+      "swissGrid": "Retícula — 8pt",
+      "swissTitle1": "Retícula &",
+      "swissTitle2": "razón."
+    }
   }
 }

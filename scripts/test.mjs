@@ -22,6 +22,7 @@ import {
   adaptOdTokens, adaptOdDesignMd, buildOdSystem, odScheme, buildDesignTokens, isOdCatalog, buildDocSystemBlock, inlineOdStylesheet,
   odPercent, odElapsedLabel, odAvailablePages, OD_EXPECTED_SYSTEMS,
   resolveDesignMix, mixRoleSystem, EMPTY_MIX, buildDocDesignBlock, fontStack, FONT_CANDIDATES, FONT_ROLES,
+  upsertCatalog, buildVerityFixPrompt, formatIdeReply, tallyIdeReply,
 } from '../src/handoff.ts';
 
 let pass = 0;
@@ -130,6 +131,17 @@ setPromptLanguage('fr'); // restore a sane default for the rest of the suite
   eq(memoryLabel(oneTwo), 'Notes + Recherche', 'memoryLabel: two vaults are both named');
   const three = { mode: 'pick', vaults: [{ vaultId: 'a', displayName: 'Notes' }, { vaultId: 'b', displayName: 'Recherche' }, { vaultId: 'c', displayName: 'Dev' }] };
   eq(memoryLabel(three), 'Notes + Recherche +1', 'memoryLabel: a third vault collapses to "+1" rather than listing everything');
+
+  // This label is STORED on a version row and read back much later, so it
+  // follows the shell language: a French string frozen into an English
+  // user's history is a leak no re-render can repair.
+  setPromptLanguage('en');
+  eq(memoryLabel(null), 'my whole memory', 'memoryLabel (en): the federated label follows the shell language');
+  eq(memoryLabel({ mode: 'none', vaults: [] }), 'no memory', 'memoryLabel (en): and so does "none"');
+  setPromptLanguage('es');
+  eq(memoryLabel({ mode: 'none', vaults: [] }), 'ninguna memoria', 'memoryLabel (es): and in Spanish');
+  eq(memoryLabel(oneTwo), 'Notes + Recherche', 'memoryLabel: picked vault NAMES are never translated');
+  setPromptLanguage('fr'); // restore the suite default
 }
 
 // ── Vault-name readability (today's earlier fix) ─────────────────────────────
@@ -519,7 +531,101 @@ ANCHOR: 2`);
   ok(sp.includes('already said'), 'buildDocSectionPrompt: prior excerpts passed');
 }
 
-// ── Report ───────────────────────────────────────────────────────────────────
+// -- CATALOG.md across a language switch ------------------------------------
+// The failure this pins: the old detector matched on the TRANSLATED column
+// header (`| App | Type |`), so a catalogue written in one language looked
+// like "no catalogue" in another and was silently rebuilt — every row gone.
+{
+  setPromptLanguage('fr');
+  const fr = upsertCatalog(null, { name: 'Cosmos', lane: 'site', slug: 'cosmos', date: '01/08/2026' });
+  ok(fr.includes('# Catalogue de mes apps'), 'upsertCatalog (fr): French header');
+  ok(fr.includes('| Cosmos | \u{1F310} site | 01/08/2026 | cosmos/ |'), 'upsertCatalog (fr): row written');
+
+  setPromptLanguage('es');
+  const es = upsertCatalog(fr, { name: 'Recetas', lane: 'doc', slug: 'recetas', date: '02/08/2026' });
+  ok(es.includes('# Cat\u00e1logo de mis apps'), 'upsertCatalog (es): header re-localized in place');
+  ok(es.includes('| App | Tipo | Creada el | Carpeta |'), 'upsertCatalog (es): columns re-localized');
+  ok(es.includes('| Cosmos |') && es.includes('| cosmos/ |'), 'upsertCatalog (es): the French row SURVIVES the switch');
+  ok(es.includes('| Cosmos | \u{1F310} sitio |'), 'upsertCatalog (es): the kept row lane cell is re-localized by its emoji');
+  ok(es.includes('| Recetas | \u{1F4C4} documento | 02/08/2026 | recetas/ |'), 'upsertCatalog (es): new row appended');
+  ok(es.indexOf('| Cosmos |') < es.indexOf('| Recetas |'), 'upsertCatalog: existing rows keep their order');
+
+  setPromptLanguage('en');
+  const again = upsertCatalog(es, { name: 'Cosmos v2', lane: 'site', slug: 'cosmos', date: '03/08/2026' });
+  eq((again.match(/\| cosmos\/ \|/g) || []).length, 1, 'upsertCatalog: re-preparing REPLACES the row, never duplicates');
+  ok(again.includes('| Cosmos v2 |') && !again.includes('| Cosmos | '), 'upsertCatalog: the replaced row carries the new name');
+  ok(again.includes('| Recetas | \u{1F4C4} document |'), 'upsertCatalog (en): the Spanish row is re-localized too');
+  ok(again.includes('| App | Type | Created on | Folder |'), 'upsertCatalog (en): English columns');
+  // A date is localized when written and cannot be parsed back — never touch it.
+  ok(again.includes('02/08/2026'), 'upsertCatalog: kept rows keep their original date, unreformatted');
+
+  const piped = upsertCatalog(null, { name: 'A | B', lane: 'cartridge', slug: 'ab', date: 'x' });
+  ok(piped.includes('| A / B |'), 'upsertCatalog: a pipe in the name cannot break the table');
+
+  // The file lives in the user's own space: whatever they wrote under the
+  // table is theirs, and an upsert is not a licence to delete it.
+  setPromptLanguage('fr');
+  const annotated = upsertCatalog(
+    `${fr}\n## Mes notes\n\nNe pas toucher \u00e0 cosmos/.\n`,
+    { name: 'Autre', lane: 'doc', slug: 'autre', date: '04/08/2026' },
+  );
+  ok(annotated.includes('## Mes notes') && annotated.includes('Ne pas toucher \u00e0 cosmos/.'),
+    'upsertCatalog: prose written UNDER the table survives an upsert');
+  ok(annotated.indexOf('| autre/ |') < annotated.indexOf('## Mes notes'),
+    'upsertCatalog: the new row lands in the table, not after the prose');
+
+  // A file with no recognizable table cannot be merged — say so in a test
+  // rather than discover it on someone's disk.
+  const rebuilt = upsertCatalog('just some text, no table at all\n', { name: 'X', lane: 'doc', slug: 'x', date: 'd' });
+  ok(rebuilt.startsWith('# Catalogue de mes apps') && rebuilt.includes('| x/ |'),
+    'upsertCatalog: no separator = nothing to merge, a fresh catalogue is written');
+}
+
+// -- Repair contract: the status words must round-trip ----------------------
+// The bug: the prompt demanded "CORRIG\u00c9" in every language while telling the
+// agent to answer in its own. An English or Spanish reply parsed as nothing,
+// so the tally read 0 fixed and the whole round was lost.
+for (const lang of ['en', 'fr', 'es']) {
+  setPromptLanguage(lang);
+  const prompt = buildVerityFixPrompt({
+    appDir: 'C:/space/app',
+    heuristics: [{ severity: 'alert', rule: 'todo', file: 'a.ts', line: 3, excerpt: '// TODO' }],
+    agent: null,
+  });
+  const asked = [...prompt.matchAll(/^- ([A-Z\u00c9]+) \u2014/gm)].map((m) => m[1]);
+  eq(asked.length, 2, `fix prompt (${lang}): exactly two status words are demanded`);
+  // Pinned as literals, NOT read back from the source. The round-trip below
+  // only proves the prompt and the parser agree with each other — and they
+  // agreed perfectly while the prompt asked an English agent for "CORRIG\u00c9".
+  // That WAS the bug, so the language of the word is asserted separately.
+  eq(asked, { en: ['FIXED', 'IMPOSSIBLE'], fr: ['CORRIG\u00c9', 'IMPOSSIBLE'], es: ['CORREGIDO', 'IMPOSIBLE'] }[lang],
+    `fix prompt (${lang}): the two words are the ones THIS language reports in`);
+  ok(!prompt.includes('<fichier:ligne>'), `fix prompt (${lang}): the line template is not hardcoded French`);
+
+  // The contract and the parser are the same vocabulary — that is the point.
+  const reply = `${asked[0]} \u2014 a.ts:3 \u2014 wired it for real ${asked[1]} \u2014 needs a backend I do not have`;
+  const formatted = formatIdeReply(reply);
+  const tally = tallyIdeReply(formatted);
+  eq(tally, { fixed: 1, impossible: 1 }, `fix prompt (${lang}): its own status words parse back to a 1/1 tally`);
+  ok(formatted.includes('- \u2705') && formatted.includes('- \u274c'), `formatIdeReply (${lang}): both statuses become bullets`);
+}
+
+// A reply in ANY accepted spelling still parses, whatever the shell language:
+// the agent answers how it wants, and an unread reply costs a repair round.
+{
+  setPromptLanguage('fr');
+  const foreign = formatIdeReply('FIXED - a.ts:1 - done CORREGIDO - b.ts:2 - hecho IMPOSIBLE - no way');
+  eq(tallyIdeReply(foreign), { fixed: 2, impossible: 1 }, 'formatIdeReply: English + Spanish spellings are accepted under a French shell');
+  ok(foreign.includes('**CORRIG\u00c9**') && !foreign.includes('**FIXED**'),
+    'formatIdeReply: a foreign status word is re-spelled in the shell language for the journal');
+  // The accent-less French spelling models produce constantly.
+  eq(tallyIdeReply(formatIdeReply('CORRIGE - a.ts:1 - fait')), { fixed: 1, impossible: 0 },
+    'formatIdeReply: accent-less CORRIGE still counts as fixed');
+  ok(!formatIdeReply('the bug is fixed now').startsWith('- '),
+    'formatIdeReply: lowercase prose is NOT mistaken for a status line');
+}
+
+// -- Report -----------------------------------------------------------------
 if (failures.length) {
   console.error(`✗ ${failures.length}/${pass + failures.length} failed:\n`);
   for (const f of failures) console.error(`  - ${f}\n`);

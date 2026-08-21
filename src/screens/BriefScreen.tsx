@@ -5,8 +5,8 @@ import type { RefObject } from 'react';
 import { STYLE_PRESETS } from '../DesignStudio';
 import { GBack, GDoc, GFolder, GPalette, GSliders, GSpark } from '../Glyphs';
 import { S, btn } from '../Chrome';
-import { memoryLabel, type ChatMsg, type FramingBrief, type MemorySource , type OdSystem } from '../handoff';
-import type { Installable } from '../appLogic';
+import { type ChatMsg, type FramingBrief, type MemorySource , type OdSystem } from '../handoff';
+import { memLabelUI, type Installable } from '../appLogic';
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -63,7 +63,7 @@ export function BriefScreen({
       <div style={S.doneHead}>
         <div>
           <h1 style={S.h1small}>{t('brief.title')}</h1>
-          <p style={S.sub}>{t('brief.subtitle1')} <b style={{ color: '#7dd3fc' }}>{t('brief.subtitleBold')}</b>.</p>
+          <p style={S.sub}>{t('brief.subtitle1')} <b style={{ color: 'var(--mu-link)' }}>{t('brief.subtitleBold')}</b>.</p>
           {/* The coach now runs on the picked memory — show what it got. */}
           {groundingBadge && <div style={{ marginTop: '8px' }}>{groundingBadge}</div>}
         </div>
@@ -109,7 +109,7 @@ export function BriefScreen({
                     <button
                       key={p.id}
                       style={{ ...S.styleCard, ...(docStyle === p.id ? S.styleCardOn : {}) }}
-                      title={p.desc}
+                      title={t(`style.desc.${p.id}`)}
                       onClick={() => setDocStyle(p.id)}
                     >
                       <span style={{ ...S.styleThumb, ...p.bn }}>Aa</span>
@@ -180,7 +180,7 @@ export function BriefScreen({
 
                 <button style={btn(thinking)} disabled={thinking} onClick={onGenerate}><GSpark size={13} />{t('brief.generate')}</button>
                 <p style={S.recapNext}>
-                  {t('brief.genFooterLead')} <b>{memoryLabel(memVault)}</b>
+                  {t('brief.genFooterLead')} <b>{memLabelUI(memVault, t)}</b>
                   {docStyle ? <> {t('brief.genFooterStyle')} <b>{STYLE_PRESETS.find((p) => p.id === docStyle)?.name}</b></> : ''}.
                 </p>
               </>
@@ -197,7 +197,7 @@ export function BriefScreen({
           <div style={S.chatRow}>
             <input
               ref={chatInputRef}
-              autoFocus style={S.chatInput} value={chatInput} placeholder={t('brief.answerPlaceholder')}
+              autoFocus style={S.chatInput} value={chatInput} placeholder={t('brief.answerPlaceholder')} aria-label={t('brief.answerPlaceholder')}
               disabled={thinking}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && onSendAnswer()}
@@ -205,6 +205,7 @@ export function BriefScreen({
             <button
               style={{ ...S.chatSend, ...(thinking || !chatInput.trim() ? { opacity: 0.45, cursor: 'not-allowed' } : {}) }}
               disabled={thinking || !chatInput.trim()} onClick={onSendAnswer}
+              aria-label={t('brief.sendAnswer')}
             >➤</button>
           </div>
           <div style={S.chatFootRow}>

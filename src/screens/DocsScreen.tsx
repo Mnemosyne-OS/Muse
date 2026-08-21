@@ -44,7 +44,7 @@ export function DocsScreen({
         <aside className="docs-side" style={S.docsSide}>
           <input
             style={S.docsSearch}
-            placeholder={t('docs.filterPlaceholder')}
+            placeholder={t('docs.filterPlaceholder')} aria-label={t('docs.filterPlaceholder')}
             value={docQuery}
             onChange={(e) => setDocQuery(e.target.value)}
           />

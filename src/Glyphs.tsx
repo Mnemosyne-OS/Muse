@@ -84,8 +84,8 @@ export const GBan = (p: GlyphProps) => (
 export const GSliders = (p: GlyphProps) => (
   <Svg {...p}>
     <path d="M1.6 3.8h8.8M1.6 8.2h8.8" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" />
-    <circle cx="4.3" cy="3.8" r="1.5" stroke="currentColor" strokeWidth="1.15" fill="#0d1526" />
-    <circle cx="7.7" cy="8.2" r="1.5" stroke="currentColor" strokeWidth="1.15" fill="#0d1526" />
+    <circle cx="4.3" cy="3.8" r="1.5" stroke="currentColor" strokeWidth="1.15" fill="var(--mu-panel)" />
+    <circle cx="7.7" cy="8.2" r="1.5" stroke="currentColor" strokeWidth="1.15" fill="var(--mu-panel)" />
   </Svg>
 );
 
@@ -130,7 +130,7 @@ export const GPrint = (p: GlyphProps) => (
   <Svg {...p}>
     <path d="M3.6 4.3V2.1h4.8v2.2" stroke="currentColor" strokeWidth="1.15" strokeLinejoin="round" />
     <rect x="1.7" y="4.3" width="8.6" height="3.9" rx="1" stroke="currentColor" strokeWidth="1.15" />
-    <path d="M3.6 7.6h4.8v2.4H3.6z" stroke="currentColor" strokeWidth="1.15" strokeLinejoin="round" fill="#0d1526" />
+    <path d="M3.6 7.6h4.8v2.4H3.6z" stroke="currentColor" strokeWidth="1.15" strokeLinejoin="round" fill="var(--mu-panel)" />
     <circle cx="8.6" cy="5.9" r="0.55" fill="currentColor" />
   </Svg>
 );

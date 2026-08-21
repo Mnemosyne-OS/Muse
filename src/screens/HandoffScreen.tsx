@@ -23,10 +23,10 @@ const PHASE_ICON: Record<string, (p: { size?: number }) => JSX.Element> = {
   handoff: GHandoff, build: GBuild, verify: GShield, publish: GLaunch,
 };
 const PHASE_DOT: Record<PhaseStatus, CSSProperties> = {
-  done: { background: 'rgba(94,214,160,0.18)', border: '2px solid #5ed6a0', color: '#5ed6a0' },
-  current: { background: 'rgba(59,130,246,0.2)', border: '2px solid #7dd3fc', color: '#7dd3fc', boxShadow: '0 0 14px rgba(59,130,246,0.55)' },
-  next: { background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(159,178,214,0.55)', color: '#9fb2d6' },
-  soon: { background: 'transparent', border: '2px dashed rgba(95,111,146,0.5)', color: '#5f6f92' },
+  done: { background: 'color-mix(in srgb, var(--mu-ok) 18%, transparent)', border: '2px solid var(--mu-ok)', color: 'var(--mu-ok)' },
+  current: { background: 'color-mix(in srgb, var(--mu-accent) 20%, transparent)', border: '2px solid var(--mu-link)', color: 'var(--mu-link)', boxShadow: '0 0 14px color-mix(in srgb, var(--mu-accent) 55%, transparent)' },
+  next: { background: 'var(--mu-wash-2)', border: '2px solid rgba(159,178,214,0.55)', color: 'var(--mu-text-3)' },
+  soon: { background: 'transparent', border: '2px dashed rgba(95,111,146,0.5)', color: 'var(--mu-text-4)' },
   optional: { background: 'rgba(139,124,240,0.12)', border: '2px dashed rgba(139,124,240,0.65)', color: '#a99df5' },
 };
 // Support artifacts the user can generate into <appDir>/docs/ (project board).
@@ -128,7 +128,7 @@ export function HandoffScreen({
                 style={{ ...S.launchBtn, ...(launching ? { opacity: 0.6, cursor: 'wait' } : {}) }}
                 disabled={!!launching}
                 title={t('board.launchTitle')}
-                onClick={() => onLaunchApp(appDir, name || 'ton app')}
+                onClick={() => onLaunchApp(appDir, name || t('board.unnamedApp'))}
               ><GLaunch size={13} />{t(launching ? 'board.launching' : 'board.launch')}</button>
             )}
             <button className="mu-btn" style={S.secondary} onClick={onOpenAppDir}><GFolder size={13} />{t('common.openFolder')}</button>
@@ -136,7 +136,7 @@ export function HandoffScreen({
           </div>
         </div>
         {launchMsg && (
-          <p style={{ ...S.soonNote, color: launchOk === false ? '#fca5a5' : '#5ed6a0' }}>
+          <p style={{ ...S.soonNote, color: launchOk === false ? 'var(--mu-err)' : 'var(--mu-ok)' }}>
             {launchOk === false ? '⚠️ ' : '🚀 '}{launchMsg}
           </p>
         )}
@@ -149,11 +149,11 @@ export function HandoffScreen({
             <div key={ph.id} style={i < arr.length - 1 ? S.ganttSeg : S.ganttSegLast}>
               <button style={S.ganttNode} onClick={() => setBoardStep(ph.id)}>
                 <span style={{ ...S.ganttDot, ...PHASE_DOT[ph.status], ...(boardStep === ph.id ? S.ganttDotSel : {}) }}><Icon size={14} /></span>
-                <span style={{ ...S.ganttLabel, ...(boardStep === ph.id ? { color: '#eaf2ff' } : {}) }}>{ph.title}</span>
+                <span style={{ ...S.ganttLabel, ...(boardStep === ph.id ? { color: 'var(--mu-text)' } : {}) }}>{ph.title}</span>
                 <span style={S.ganttStatus}>{t(`board.phaseStatus.${ph.status}`)}</span>
               </button>
               {i < arr.length - 1 && (
-                <span style={{ ...S.ganttLine, ...(ph.status === 'done' ? { background: 'rgba(94,214,160,0.45)' } : {}) }} />
+                <span style={{ ...S.ganttLine, ...(ph.status === 'done' ? { background: 'color-mix(in srgb, var(--mu-ok) 45%, transparent)' } : {}) }} />
               )}
             </div>
             );
@@ -191,7 +191,7 @@ export function HandoffScreen({
               <div style={S.optRow}>
                 <span style={{ ...S.sw, background: hslToHex(designHue, 72, 56) }} title={t('step.hueTitle', { n: designHue })} />
                 <span style={S.designSummary}>
-                  {t('step.hueLabel', { n: designHue })} · {t(`step.harmony${designHarmony.charAt(0).toUpperCase()}${designHarmony.slice(1)}`)} · style {STYLE_PRESETS.find((p) => p.id === designStyle)?.name ?? '—'} · {t('step.fxCount', { n: designFx.size })} · {designState === 'done' ? t('step.designSaved') : t('step.designNotSaved')}
+                  {t('step.hueLabel', { n: designHue })} · {t(`step.harmony${designHarmony.charAt(0).toUpperCase()}${designHarmony.slice(1)}`)} · {t('doc.styleTag', { name: STYLE_PRESETS.find((p) => p.id === designStyle)?.name ?? '—' })} · {t('step.fxCount', { n: designFx.size })} · {designState === 'done' ? t('step.designSaved') : t('step.designNotSaved')}
                 </span>
               </div>
               {error && <div style={S.error}>⚠️ {error}</div>}
@@ -301,7 +301,7 @@ export function HandoffScreen({
                 </div>
                 {mcpShowSnippet && <pre style={S.mcpSnippet}>{mcpSnippet(mcpTargets[mcpIde].rootKey, memVault)}</pre>}
                 {mcpMsg && (
-                  <p style={{ ...S.soonNote, color: mcpState === 'error' ? '#fca5a5' : mcpState === 'done' ? '#5ed6a0' : '#9fb2d6' }}>
+                  <p style={{ ...S.soonNote, color: mcpState === 'error' ? 'var(--mu-err)' : mcpState === 'done' ? 'var(--mu-ok)' : 'var(--mu-text-3)' }}>
                     {mcpState === 'done' ? '✅ ' : mcpState === 'error' ? '⚠️ ' : ''}{mcpMsg}
                   </p>
                 )}
@@ -345,7 +345,7 @@ export function HandoffScreen({
                 <p style={S.stepTitle}><GShield size={14} />{t('step.verifyTitle')}</p>
                 <p style={S.sub}>{t('step.verifyDesc')}</p>
                 {verityState === 'done' && (
-                  <p style={{ ...S.soonNote, color: reds ? '#fca5a5' : '#5ed6a0' }}>
+                  <p style={{ ...S.soonNote, color: reds ? 'var(--mu-err)' : 'var(--mu-ok)' }}>
                     {reds ? t('step.verityLastBad', { n: reds }) : t('step.verityLastGood')}
                     {fixRound > 0 ? ` ${t('step.verityFixRounds', { n: fixRound })}` : ''}
                   </p>

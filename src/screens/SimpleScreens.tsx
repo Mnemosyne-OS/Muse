@@ -22,7 +22,7 @@ export function IntroScreen({ t, onboarded, onEnter }: {
         <span style={{ ...S.word, marginTop: 0 }}>Muse</span>
         <ChannelBadge size="lg" />
       </div>
-      <div className="ab-t1" style={S.t1}>{t('intro.tagline1')} <b style={{ color: '#7dd3fc' }}>{t('intro.neural')}</b></div>
+      <div className="ab-t1" style={S.t1}>{t('intro.tagline1')} <b style={{ color: 'var(--mu-link)' }}>{t('intro.neural')}</b></div>
       <div className="ab-t2" style={S.t2}>{t('intro.tagline2')}<br />{t('intro.tagline3')}</div>
       <InfinityLoader />
     </div>
@@ -61,7 +61,7 @@ export function NameScreen({ t, purpose, name, onNameChange, onGenerate, onAdvan
       <p style={S.sub}>« {purpose} »</p>
       <input
         autoFocus style={S.input} value={name}
-        placeholder={t('name.placeholder')}
+        placeholder={t('name.placeholder')} aria-label={t('name.placeholder')}
         onChange={(e) => onNameChange(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && name.trim() && onGenerate()}
       />

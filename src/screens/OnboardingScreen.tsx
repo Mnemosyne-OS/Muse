@@ -64,7 +64,7 @@ export function OnboardingScreen({
         {[0, 1, 2, 3, 4].map((i) => <span key={i} style={{ ...S.dot, ...(i <= obStep ? S.dotOn : {}) }} />)}
       </div>
       {error && (
-        <div style={S.error}>
+        <div role="alert" style={S.error}>
           ⚠️ {error}
           {onRetryBoot && <button className="mu-btn" style={{ marginLeft: 10 }} onClick={onRetryBoot}>{t('err.retry')}</button>}
         </div>
@@ -78,7 +78,7 @@ export function OnboardingScreen({
           {/* The fork Tony asked for: document-only people skip the whole IDE /
               space / repo journey — their Muse is the studio, nothing else. */}
           <button className="mu-btn mu-cta" style={S.primary} onClick={() => setObStep(1)}>{t('ob.fullCreate')}</button>
-          <button className="mu-btn mu-cta" style={{ ...S.primary, background: 'rgba(59,130,246,0.1)' }} onClick={onDocsOnly}>{t('ob.docsOnly')}</button>
+          <button className="mu-btn mu-cta" style={{ ...S.primary, background: 'color-mix(in srgb, var(--mu-accent) 10%, transparent)', color: 'var(--mu-text)' }} onClick={onDocsOnly}>{t('ob.docsOnly')}</button>
           <button className="mu-btn" style={S.back} onClick={onCompleteOnboarding}>{t('ob.skip')}</button>
         </div>
       )}
@@ -89,7 +89,7 @@ export function OnboardingScreen({
           <p style={S.sub}>{t('ob.editorSub')}</p>
           {!os
             ? <button className="mu-btn" style={S.secondary} onClick={() => setOs(detectOs())}>{t('ob.detect')}</button>
-            : <p style={S.sub}>{t('ob.system')} <b style={{ color: '#7dd3fc' }}>{osLabel(os, t)}</b> · <button className="mu-btn" style={S.linkBtn} onClick={() => setOs('')}>{t('ob.change')}</button></p>}
+            : <p style={S.sub}>{t('ob.system')} <b style={{ color: 'var(--mu-link)' }}>{osLabel(os, t)}</b> · <button className="mu-btn" style={S.linkBtn} onClick={() => setOs('')}>{t('ob.change')}</button></p>}
           <div className="ide-grid" style={S.ideGrid}>
             {IDES.map((o) => (
               <button key={o.id} style={{ ...S.ideCard, ...(ide === o.id ? S.ideCardOn : {}) }} onClick={() => setIde(o.id)}>
@@ -114,7 +114,7 @@ export function OnboardingScreen({
       {obStep === 2 && (
         <div style={S.obBody}>
           <h1 style={S.h1}>{t('ob.spaceTitle')}</h1>
-          <p style={S.sub}>{t('ob.spaceSub1')} <b style={{ color: '#7dd3fc' }}>{t('ob.spaceSubBold')}</b> {t('ob.spaceSub2')}</p>
+          <p style={S.sub}>{t('ob.spaceSub1')} <b style={{ color: 'var(--mu-link)' }}>{t('ob.spaceSubBold')}</b> {t('ob.spaceSub2')}</p>
           <button className="mu-btn" style={S.secondary} onClick={onPickFolder}>📁 {folder ? t('ob.changeFolder') : t('ob.chooseFolder')}</button>
           {folder && <p style={S.pathLabel}>✓ {folder}</p>}
           <p style={S.soonNote}>{t('ob.anyOs')}</p>
@@ -126,7 +126,7 @@ export function OnboardingScreen({
       {obStep === 3 && (
         <div style={S.obBody}>
           <h1 style={S.h1}>{t('ob.codeAndExamplesTitle')}</h1>
-          <p style={S.sub}>{t('ob.installOne')} <b style={{ color: '#7dd3fc' }}>{t('ob.yourSpace')}</b>{t('ob.installTwo')}</p>
+          <p style={S.sub}>{t('ob.installOne')} <b style={{ color: 'var(--mu-link)' }}>{t('ob.yourSpace')}</b>{t('ob.installTwo')}</p>
 
           <div style={S.exList}>
             {installables.map((item) => (
@@ -136,7 +136,7 @@ export function OnboardingScreen({
                   <span style={S.exName}>{item.name}</span>
                   <span style={S.exDesc}>{t(`install.desc.${item.id}`)}</span>
                 </span>
-                <button style={S.ideLink} title={t('install.viewOnGithub')} onClick={() => onOpenExternal(item.repo)}>↗</button>
+                <button style={S.ideLink} title={t('install.viewOnGithub')} aria-label={t('install.viewOnGithub')} onClick={() => onOpenExternal(item.repo)}>↗</button>
                 {installed[item.id]
                   ? <span style={S.installedTag}>{t('ob.installed')}</span>
                   : <button className="mu-btn" style={S.installBtn} onClick={() => onInstallClick(item)}>{t('install.installButton')}</button>}

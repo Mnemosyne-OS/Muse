@@ -1,22 +1,72 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Muse — Mnemosyne OS</title>
     <style>
+      /* ── Muse's token layer ────────────────────────────────────────────
+         A cartridge iframe inherits NOTHING from the host's stylesheets, so
+         the host BROADCASTS its computed tokens instead (MNEMO_CONFIG_UPDATE)
+         and the SDK writes them onto our own <html> — see main.tsx. Every
+         --mu-* below therefore reads the host's token first and falls back to
+         Muse's standalone dark palette, which is what a dev server or a host
+         that sends nothing will show.
+
+         Why so few: these are SEMANTIC roles, not a copy of the palette. A
+         wash that only exists to lift a surface off a dark ground has to
+         become the host's surface colour, or it turns invisible the moment
+         the shell is light. Decorative literals (the colour wheel, IDE brand
+         dots, the style previews) stay literal on purpose — they show a fixed
+         design and must not follow anything. */
+      :root {
+        --mu-bg:        var(--bg-void, #0b0a14);
+        --mu-panel:     var(--bg-panel, #0d1526);
+        --mu-input:     var(--bg-input, rgba(0,0,0,0.25));
+        /* Elevation: a surface, and the same surface under the cursor. */
+        --mu-wash:      var(--bg-surface, rgba(255,255,255,0.03));
+        --mu-wash-2:    var(--bg-surface-hover, rgba(255,255,255,0.06));
+        /* Hairlines: the quiet one, and the one that answers a hover. */
+        --mu-line:      var(--border-subtle, rgba(255,255,255,0.09));
+        --mu-line-2:    var(--border-active, rgba(255,255,255,0.14));
+        --mu-line-3:    var(--border-focus, rgba(255,255,255,0.24));
+        --mu-ground:    var(--bg-void, #060a16);
+        --mu-glow:      var(--bg-panel, #101f3f);
+        --mu-scroll:        var(--scrollbar-thumb, rgba(125,150,200,0.22));
+        --mu-scroll-hover:  var(--scrollbar-hover, rgba(125,150,200,0.45));
+
+        /* Four text levels because the UI uses four, not because the host
+           offers four: 2 and 3 both resolve to the shell secondary and only
+           keep their own nuance standalone. */
+        --mu-text:      var(--text-primary, #eaf2ff);
+        --mu-text-2:    var(--text-secondary, #c9d6f2);
+        --mu-text-3:    var(--text-secondary, #9fb2d6);
+        /* #5f6f92 was the design's muted level and scored 3.24:1 on the
+           shell's own ground — under AA for text this small. Lifted until
+           it clears 4.5 on the LIGHTEST ground it lands on (#101f3f). */
+        --mu-text-4:    var(--text-muted, #7484ab);
+
+        /* Every wash is color-mix(…, var(--mu-x) N%, transparent), so an
+           accent tint follows the shell accent instead of staying blue. */
+        --mu-accent:    var(--accent, #3b82f6);
+        --mu-link:      var(--accent-link, #7dd3fc);
+        --mu-ok:        var(--accent-positive, #5ed6a0);
+        --mu-err:       var(--accent-error-text, #fca5a5);
+        --mu-err-bg:    var(--accent-error, #f87171);
+        --mu-warn:      var(--accent-warning, #f0c674);
+      }
       html, body, #root {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
         overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        background-color: var(--bg-void, #0b0a14);
-        color: var(--text-primary, #f3f0ff);
+        font-family: var(--font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+        background-color: var(--mu-bg);
+        color: var(--mu-text);
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-DVL07AIa.js"></script>
+    <script type="module" crossorigin src="./assets/index-BBkAm_Yc.js"></script>
   </head>
   <body>
     <div id="root"></div>

@@ -4,7 +4,7 @@
 // Extracted out of App.tsx (which used to define all of this after its own
 // ~3260-line component body) — none of it touches App()'s state or hooks,
 // so it moves verbatim with zero behavior change.
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useI18n } from './i18n/useI18n';
 import type { DocEntry, DocFolder } from './appLogic';
 import manifest from '../mnemo-plugin.json';
@@ -81,7 +81,7 @@ export function Logo({ mode = 'static' }: { mode?: 'intro' | 'static' | 'ambient
     <svg viewBox="0 0 200 200" style={svgStyle} aria-hidden>
       <defs>
         <linearGradient id="gb" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#7dd3fc" />
+          <stop offset="0" stopColor="var(--mu-link)" />
           <stop offset="1" stopColor="#2563eb" />
         </linearGradient>
       </defs>
@@ -98,8 +98,8 @@ export function Logo({ mode = 'static' }: { mode?: 'intro' | 'static' | 'ambient
         );
       })}
       {anim
-        ? <circle cx="100" cy="100" r="52" className="ab-halo" fill="none" stroke="#3b82f6" strokeWidth="1.2" />
-        : <circle cx="100" cy="100" r="52" fill="none" stroke="#3b82f6" strokeWidth="1.2" opacity={0.12} />}
+        ? <circle cx="100" cy="100" r="52" className="ab-halo" fill="none" stroke="var(--mu-accent)" strokeWidth="1.2" />
+        : <circle cx="100" cy="100" r="52" fill="none" stroke="var(--mu-accent)" strokeWidth="1.2" opacity={0.12} />}
       {M_EDGES.map(([a, b], i) => (
         <line
           key={`e${i}`} x1={M_NODES[a][0]} y1={M_NODES[a][1]} x2={M_NODES[b][0]} y2={M_NODES[b][1]}
@@ -135,7 +135,7 @@ export function SideLogo() {
 /** Open-book glyph for the header action bar. */
 export function BookIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#9fb2d6" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--mu-text-3)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M12 6.5C10.4 5 8 4.5 5.5 4.5c-.8 0-1.5.1-2 .2V18c.5-.1 1.2-.2 2-.2 2.5 0 4.9.5 6.5 2 1.6-1.5 4-2 6.5-2 .8 0 1.5.1 2 .2V4.7c-.5-.1-1.2-.2-2-.2-2.5 0-4.9.5-6.5 2Z" />
       <path d="M12 6.5v13.3" />
     </svg>
@@ -211,8 +211,24 @@ export function RepoCard({ repo, desc }: { repo: string; desc: string }) {
   );
 }
 
+/** Close an overlay on Escape.
+ *
+ *  Every overlay in Muse already closed on a backdrop click, which is a mouse
+ *  gesture: with the keyboard there was no way out at all. Pass `undefined`
+ *  while the overlay must NOT be dismissable (a clone in flight) and no
+ *  listener is registered — the guard belongs here, not at every call site. */
+export function useEscape(onClose: (() => void) | undefined): void {
+  useEffect(() => {
+    if (!onClose) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+}
+
 /** Bottom footer: Mnemosyne ∞ mark + the Muse version + onboarding reset. */
 export function Footer({ onReset, museVersion }: { onReset?: () => void; museVersion: string }) {
+  const { t } = useI18n();
   const d = 'M14,20 C14,9 30,9 40,20 C50,31 66,31 66,20 C66,9 50,9 40,20 C30,31 14,31 14,20 Z';
   return (
     <footer style={S.footer}>
@@ -223,7 +239,7 @@ export function Footer({ onReset, museVersion }: { onReset?: () => void; museVer
       <span>Mnemosyne OS</span>
       <span style={{ opacity: 0.45 }}>·</span>
       <span>Muse v{museVersion}</span>
-      {onReset && <button style={S.footReset} onClick={onReset}>↺ Onboarding</button>}
+      {onReset && <button style={S.footReset} onClick={onReset}>{t('install.onboardingButton')}</button>}
     </footer>
   );
 }
@@ -234,8 +250,8 @@ export function InfinityLoader({ immediate = false }: { immediate?: boolean }) {
   return (
     <div className="ab-inf-wrap" style={immediate ? { ...S.infWrap, animationDelay: '0.2s' } : S.infWrap}>
       <svg viewBox="0 0 80 40" style={S.inf} aria-hidden>
-        <path d={d} fill="none" stroke="rgba(125,211,252,0.18)" strokeWidth="3" strokeLinecap="round" />
-        <path d={d} fill="none" stroke="#7dd3fc" strokeWidth="3" strokeLinecap="round" pathLength={240} strokeDasharray="20 220" className="ab-infrun" style={immediate ? { animationDelay: '0.4s' } : undefined} />
+        <path d={d} fill="none" stroke="color-mix(in srgb, var(--mu-link) 18%, transparent)" strokeWidth="3" strokeLinecap="round" />
+        <path d={d} fill="none" stroke="var(--mu-link)" strokeWidth="3" strokeLinecap="round" pathLength={240} strokeDasharray="20 220" className="ab-infrun" style={immediate ? { animationDelay: '0.4s' } : undefined} />
       </svg>
       <span style={S.infText}>Mnemosyne OS</span>
     </div>
@@ -249,11 +265,11 @@ export function btn(disabled: boolean): CSSProperties {
 
 export const KEYFRAMES = `
   /* Slim, quiet scrollbars everywhere — the chunky OS default is ugly in-app. */
-  * { scrollbar-width: thin; scrollbar-color: rgba(125,150,200,0.25) transparent; }
+  * { scrollbar-width: thin; scrollbar-color: var(--mu-scroll) transparent; }
   *::-webkit-scrollbar { width: 9px; height: 9px; }
   *::-webkit-scrollbar-track { background: transparent; }
-  *::-webkit-scrollbar-thumb { background: rgba(125,150,200,0.22); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
-  *::-webkit-scrollbar-thumb:hover { background: rgba(125,150,200,0.45); border: 3px solid transparent; background-clip: padding-box; }
+  *::-webkit-scrollbar-thumb { background: var(--mu-scroll); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+  *::-webkit-scrollbar-thumb:hover { background: var(--mu-scroll-hover); border: 3px solid transparent; background-clip: padding-box; }
   *::-webkit-scrollbar-corner { background: transparent; }
   @keyframes ab-draw { to { stroke-dashoffset: 0; } }
   @keyframes ab-pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.4); } 100% { transform: scale(1); opacity: 1; } }
@@ -271,15 +287,22 @@ export const KEYFRAMES = `
      express. ONE ease, 160ms, nothing bounces — a wash lifts, a hairline
      brightens, and the glyph inherits the color change for free. */
   .mu-btn { transition: background-color .16s cubic-bezier(.16,1,.3,1), border-color .16s cubic-bezier(.16,1,.3,1), color .16s cubic-bezier(.16,1,.3,1), transform .16s cubic-bezier(.16,1,.3,1); }
-  .mu-btn:hover:not(:disabled) { background-color: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.22); color: #eaf2ff; }
+  .mu-btn:hover:not(:disabled) { background-color: var(--mu-wash-2); border-color: var(--mu-line-3); color: var(--mu-text); }
   .mu-btn:active:not(:disabled) { transform: translateY(1px); }
-  .mu-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(125,211,252,0.5); }
+  .mu-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--mu-link) 50%, transparent); }
+  /* Keyboard focus has to be VISIBLE on everything reachable, not only on the
+     buttons that opted into .mu-btn — inputs, links and plain buttons were
+     landing on the browser default, which this app's own outline reset hid. */
+  :where(button, [href], input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--mu-link);
+    outline-offset: 2px;
+  }
   /* Primary: accent wash + ring, never a saturated fill with white text. */
-  .mu-cta:hover:not(:disabled) { background-color: rgba(59,130,246,0.24); border-color: rgba(59,130,246,0.75); color: #eaf2ff; }
+  .mu-cta:hover:not(:disabled) { background-color: color-mix(in srgb, var(--mu-accent) 24%, transparent); border-color: color-mix(in srgb, var(--mu-accent) 75%, transparent); color: var(--mu-text); }
   /* Destructive keeps its own hue so it never reads as "just another button". */
-  .mu-danger:hover:not(:disabled) { background-color: rgba(248,113,113,0.18); border-color: rgba(248,113,113,0.55); color: #fecaca; }
+  .mu-danger:hover:not(:disabled) { background-color: color-mix(in srgb, var(--mu-err-bg) 18%, transparent); border-color: color-mix(in srgb, var(--mu-err-bg) 55%, transparent); color: var(--mu-err); }
   /* Rows: the affordance arrow slides a hair on hover. */
-  .mu-row:hover { background-color: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.14); }
+  .mu-row:hover { background-color: var(--mu-wash-2); border-color: var(--mu-line-2); }
   .mu-row .mu-go { transition: transform .16s cubic-bezier(.16,1,.3,1), opacity .16s ease; opacity: .55; }
   .mu-row:hover .mu-go { transform: translateX(3px); opacity: 1; }
   @keyframes ab-run { to { stroke-dashoffset: -240; } }
@@ -289,7 +312,7 @@ export const KEYFRAMES = `
   @keyframes mu-indet { 0% { left: -38%; } 100% { left: 100%; } }
   .mu-indet { position: absolute; top: 0; bottom: 0; width: 38%; border-radius: 999px; animation: mu-indet 1.35s cubic-bezier(.5,0,.5,1) infinite; }
   .ab-spoke { stroke-dasharray: 120; stroke-dashoffset: 120; animation: ab-draw 0.5s ease forwards; }
-  .ab-node { transform-box: fill-box; transform-origin: center; opacity: 0; animation: ab-pop 0.45s cubic-bezier(.2,1.3,.4,1) forwards; filter: drop-shadow(0 0 6px rgba(59,130,246,0.7)); }
+  .ab-node { transform-box: fill-box; transform-origin: center; opacity: 0; animation: ab-pop 0.45s cubic-bezier(.2,1.3,.4,1) forwards; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--mu-accent) 70%, transparent)); }
   .ab-halo { transform-box: fill-box; transform-origin: center; opacity: 0; animation: ab-halo 1.2s ease-out forwards; animation-delay: 1.6s; }
   .ab-gearin { transform-box: fill-box; transform-origin: center; opacity: 0; animation: ab-gearin 0.7s ease forwards; }
   .ab-gearspin { transform-box: fill-box; transform-origin: center; animation-name: ab-spin; animation-timing-function: linear; animation-iteration-count: infinite; }
@@ -315,8 +338,8 @@ export const KEYFRAMES = `
 
 export const S: Record<string, CSSProperties> = {
   root: {
-    height: '100%', boxSizing: 'border-box', color: '#eaf2ff',
-    background: 'radial-gradient(circle at 50% -10%, #101f3f 0%, #060a16 55%)',
+    height: '100%', boxSizing: 'border-box', color: 'var(--mu-text)',
+    background: 'radial-gradient(circle at 50% -10%, var(--mu-glow) 0%, var(--mu-ground) 55%)',
     display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
     fontFamily: '"Inter", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif',
     WebkitFontSmoothing: 'antialiased',
@@ -326,57 +349,57 @@ export const S: Record<string, CSSProperties> = {
 
   // Intro / logo
   ready: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '18px', userSelect: 'none', padding: 'clamp(16px, 4vw, 28px)', animation: 'mu-ready-out 0.3s ease 1.2s both' },
-  readyWord: { fontSize: '15px', letterSpacing: '0.06em', color: '#9fb2d6' },
+  readyWord: { fontSize: '15px', letterSpacing: '0.06em', color: 'var(--mu-text-3)' },
   intro: { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', cursor: 'pointer', userSelect: 'none', padding: 'clamp(16px, 4vw, 28px)' },
   emblem: { width: 'clamp(104px, 26vw, 138px)', height: 'clamp(104px, 26vw, 138px)', overflow: 'visible' },
   emblemSmall: { width: '84px', height: '84px', overflow: 'visible' },
   emblemMark: { width: '38px', height: '38px', overflow: 'visible', flexShrink: 0 },
-  word: { fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 'clamp(34px, 9vw, 46px)', fontWeight: 700, letterSpacing: '0.14em', marginTop: '10px', background: 'linear-gradient(135deg, #bfe3ff, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
-  t1: { fontSize: '16px', color: '#dbe7ff', letterSpacing: '0.02em' },
-  t2: { fontSize: '13px', color: '#9fb2d6', textAlign: 'center', lineHeight: 1.6 },
+  word: { fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 'clamp(34px, 9vw, 46px)', fontWeight: 700, letterSpacing: '0.14em', marginTop: '10px', background: 'linear-gradient(135deg, var(--mu-link), var(--mu-accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+  t1: { fontSize: '16px', color: 'var(--mu-text-2)', letterSpacing: '0.02em' },
+  t2: { fontSize: '13px', color: 'var(--mu-text-3)', textAlign: 'center', lineHeight: 1.6 },
   infWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '12px' },
   inf: { width: '72px', height: '36px', overflow: 'visible' },
-  infText: { fontSize: '10px', letterSpacing: '0.2em', color: '#5f6f92', textTransform: 'uppercase' },
-  footer: { position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '11px', color: '#5f6f92', letterSpacing: '0.08em', textTransform: 'uppercase' },
-  footReset: { position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#5f6f92', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit', padding: 0 },
+  infText: { fontSize: '10px', letterSpacing: '0.2em', color: 'var(--mu-text-4)', textTransform: 'uppercase' },
+  footer: { position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '10px 16px', borderTop: '1px solid var(--mu-wash-2)', fontSize: '11px', color: 'var(--mu-text-4)', letterSpacing: '0.08em', textTransform: 'uppercase' },
+  footReset: { position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--mu-text-4)', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit', padding: 0 },
   footInf: { width: '26px', height: '13px', overflow: 'visible' },
 
   // Onboarding
   ob: { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'clamp(18px, 4vw, 32px)', gap: '22px' },
   obDots: { display: 'flex', gap: '8px' },
   obBody: { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '18px', maxWidth: '520px', animation: 'ab-fade 0.45s ease both' },
-  dot: { width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.14)', transition: 'all .3s' },
-  dotOn: { background: '#3b82f6', boxShadow: '0 0 10px rgba(59,130,246,0.7)', transform: 'scale(1.15)' },
+  dot: { width: '8px', height: '8px', borderRadius: '50%', background: 'var(--mu-line-2)', transition: 'all .3s' },
+  dotOn: { background: 'var(--mu-accent)', boxShadow: '0 0 10px color-mix(in srgb, var(--mu-accent) 70%, transparent)', transform: 'scale(1.15)' },
   ideGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', width: '100%', maxWidth: '440px' },
-  ideCard: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '16px 14px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#eaf2ff', cursor: 'pointer', textAlign: 'center' },
-  ideCardOn: { border: '1px solid #3b82f6', background: 'rgba(59,130,246,0.12)', boxShadow: '0 0 0 1px #3b82f6' },
+  ideCard: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '16px 14px', borderRadius: '14px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', color: 'var(--mu-text)', cursor: 'pointer', textAlign: 'center' },
+  ideCardOn: { border: '1px solid var(--mu-accent)', background: 'color-mix(in srgb, var(--mu-accent) 12%, transparent)', boxShadow: '0 0 0 1px var(--mu-accent)' },
   ideName: { fontSize: '15px', fontWeight: 700, marginTop: '2px' },
-  tagReco: { fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#7dd3fc', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.35)', borderRadius: '999px', padding: '2px 8px' },
+  tagReco: { fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--mu-link)', background: 'color-mix(in srgb, var(--mu-accent) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-accent) 35%, transparent)', borderRadius: '999px', padding: '2px 8px' },
   tagExpert: { fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#e6b980', background: 'rgba(230,150,60,0.12)', border: '1px solid rgba(230,150,60,0.3)', borderRadius: '999px', padding: '2px 8px' },
-  ideDesc: { fontSize: '12px', color: '#9fb2d6' },
+  ideDesc: { fontSize: '12px', color: 'var(--mu-text-3)' },
   ideLinks: { display: 'flex', gap: '12px', alignItems: 'center', marginTop: '6px' },
-  ideLinkPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#7dd3fc', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' },
-  ideLink: { fontSize: '12px', color: '#9fb2d6', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' },
-  linkBtn: { background: 'none', border: 'none', color: '#9fb2d6', textDecoration: 'underline', cursor: 'pointer', font: 'inherit', padding: 0 },
-  pathLabel: { fontSize: '12px', color: '#7dd3fc', background: 'rgba(59,130,246,0.08)', padding: '8px 12px', borderRadius: '8px', wordBreak: 'break-all', maxWidth: '100%' },
-  soonNote: { fontSize: '12px', color: '#9fb2d6', margin: 0 },
+  ideLinkPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--mu-link)', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' },
+  ideLink: { fontSize: '12px', color: 'var(--mu-text-3)', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' },
+  linkBtn: { background: 'none', border: 'none', color: 'var(--mu-text-3)', textDecoration: 'underline', cursor: 'pointer', font: 'inherit', padding: 0 },
+  pathLabel: { fontSize: '12px', color: 'var(--mu-link)', background: 'color-mix(in srgb, var(--mu-accent) 8%, transparent)', padding: '8px 12px', borderRadius: '8px', wordBreak: 'break-all', maxWidth: '100%' },
+  soonNote: { fontSize: '12px', color: 'var(--mu-text-3)', margin: 0 },
   exList: { display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '440px' },
-  exRow: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', textAlign: 'left', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: '#eaf2ff', cursor: 'pointer' },
+  exRow: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', textAlign: 'left', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', color: 'var(--mu-text)', cursor: 'pointer' },
   exIcon: { fontSize: '20px', width: '26px', textAlign: 'center', flexShrink: 0 },
   exInfo: { display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 },
   exName: { fontSize: '14px', fontWeight: 600 },
-  exDesc: { fontSize: '11px', color: '#9fb2d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  installBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12px', fontWeight: 700, padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(59,130,246,0.45)', background: 'rgba(59,130,246,0.16)', color: '#7dd3fc', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
-  installedTag: { fontSize: '12px', fontWeight: 700, color: '#5ed6a0', whiteSpace: 'nowrap', flexShrink: 0 },
-  code: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11px', color: '#9fb2d6', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '8px 10px', maxWidth: '440px', width: '100%', boxSizing: 'border-box', wordBreak: 'break-all', textAlign: 'left' },
+  exDesc: { fontSize: '11px', color: 'var(--mu-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  installBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12px', fontWeight: 700, padding: '8px 12px', borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--mu-accent) 45%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 16%, transparent)', color: 'var(--mu-link)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+  installedTag: { fontSize: '12px', fontWeight: 700, color: 'var(--mu-ok)', whiteSpace: 'nowrap', flexShrink: 0 },
+  code: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11px', color: 'var(--mu-text-3)', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--mu-line)', borderRadius: '8px', padding: '8px 10px', maxWidth: '440px', width: '100%', boxSizing: 'border-box', wordBreak: 'break-all', textAlign: 'left' },
   overlay: { position: 'absolute', inset: 0, background: 'rgba(6,10,22,0.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, padding: '24px', boxSizing: 'border-box' },
-  modal: { width: '100%', maxWidth: '420px', background: '#0f1830', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '14px', boxShadow: '0 30px 80px rgba(0,0,0,0.55)', boxSizing: 'border-box' },
-  repoCard: { display: 'flex', flexDirection: 'column', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' },
+  modal: { width: '100%', maxWidth: '420px', background: 'var(--mu-panel)', border: '1px solid var(--mu-line)', borderRadius: '20px', padding: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '14px', boxShadow: '0 30px 80px rgba(0,0,0,0.55)', boxSizing: 'border-box' },
+  repoCard: { display: 'flex', flexDirection: 'column', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)' },
   repoImg: { width: '100%', height: 'auto', display: 'block', maxHeight: '150px', objectFit: 'cover' },
   repoBody: { display: 'flex', flexDirection: 'column', gap: '3px', padding: '10px 12px', textAlign: 'left' },
-  repoName: { fontSize: '13px', fontWeight: 700, color: '#eaf2ff' },
-  repoDesc: { fontSize: '11px', color: '#9fb2d6' },
-  repoTrust: { fontSize: '11px', color: '#5ed6a0', fontWeight: 600, marginTop: '2px' },
+  repoName: { fontSize: '13px', fontWeight: 700, color: 'var(--mu-text)' },
+  repoDesc: { fontSize: '11px', color: 'var(--mu-text-3)' },
+  repoTrust: { fontSize: '11px', color: 'var(--mu-ok)', fontWeight: 600, marginTop: '2px' },
 
   // Dashboard. The SCROLLER spans the full view so the scrollbar hugs the
   // window edge; the INNER block centers and caps the content width.
@@ -384,188 +407,188 @@ export const S: Record<string, CSSProperties> = {
   dashInner: { width: '100%', maxWidth: '1080px', margin: '0 auto', padding: 'clamp(16px, 4vw, 32px)', display: 'flex', flexDirection: 'column', gap: 'clamp(16px, 3vw, 24px)', boxSizing: 'border-box' },
   dashHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' },
   brand: { display: 'flex', alignItems: 'center', gap: '10px' },
-  brandName: { fontFamily: 'Georgia, serif', fontSize: '22px', letterSpacing: '0.08em', color: '#eaf2ff' },
-  brandTag: { fontSize: '11px', color: '#5f6f92', textTransform: 'uppercase', letterSpacing: '0.14em' },
-  channel: { fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7dd3fc', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(125,211,252,0.35)', borderRadius: '999px', padding: '3px 9px', lineHeight: 1.4, alignSelf: 'center', flexShrink: 0 },
+  brandName: { fontFamily: 'Georgia, serif', fontSize: '22px', letterSpacing: '0.08em', color: 'var(--mu-text)' },
+  brandTag: { fontSize: '11px', color: 'var(--mu-text-4)', textTransform: 'uppercase', letterSpacing: '0.14em' },
+  channel: { fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--mu-link)', background: 'color-mix(in srgb, var(--mu-accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-link) 35%, transparent)', borderRadius: '999px', padding: '3px 9px', lineHeight: 1.4, alignSelf: 'center', flexShrink: 0 },
   channelLg: { fontSize: '11px', padding: '4px 12px', letterSpacing: '0.2em' },
   wordRow: { display: 'inline-flex', alignItems: 'baseline', gap: '12px', marginTop: '10px' },
   quick: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  quickLabel: { fontSize: '18px', fontWeight: 600, color: '#eaf2ff' },
-  quickInput: { width: '100%', boxSizing: 'border-box', fontSize: '16px', padding: '18px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.25)', color: '#fff', outline: 'none' },
+  quickLabel: { fontSize: '18px', fontWeight: 600, color: 'var(--mu-text)' },
+  quickInput: { width: '100%', boxSizing: 'border-box', fontSize: '16px', padding: '18px 20px', borderRadius: '16px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none' },
   cols: { display: 'flex', gap: '20px', flexWrap: 'wrap' },
   col: { flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '10px' },
-  colTitle: { fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#5f6f92', margin: 0, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: '8px' },
-  empty: { fontSize: '13px', color: '#4d5b7d', fontStyle: 'italic', margin: '4px 0' },
+  colTitle: { fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mu-text-4)', margin: 0, borderBottom: '1px solid var(--mu-wash-2)', paddingBottom: '8px' },
+  empty: { fontSize: '13px', color: 'var(--mu-text-4)', fontStyle: 'italic', margin: '4px 0' },
   stats: { display: 'flex', gap: '14px', flexWrap: 'wrap' },
-  statCard: { flex: '1 1 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '14px 10px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' },
-  statNum: { fontSize: '26px', fontWeight: 700, color: '#7dd3fc', lineHeight: 1.1 },
-  statLabel: { fontSize: '11px', color: '#5f6f92', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  statCard: { flex: '1 1 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '14px 10px', borderRadius: '14px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)' },
+  statNum: { fontSize: '26px', fontWeight: 700, color: 'var(--mu-link)', lineHeight: 1.1 },
+  statLabel: { fontSize: '11px', color: 'var(--mu-text-4)', textTransform: 'uppercase', letterSpacing: '0.08em' },
   headActions: { display: 'flex', alignItems: 'center', gap: '12px' },
-  iconBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', cursor: 'pointer', padding: 0 },
-  docIcon: { display: 'inline-flex', alignItems: 'center', color: '#9fb2d6', fontSize: '15px', flexShrink: 0 },
+  iconBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', height: '34px', borderRadius: '10px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', cursor: 'pointer', padding: 0 },
+  docIcon: { display: 'inline-flex', alignItems: 'center', color: 'var(--mu-text-3)', fontSize: '15px', flexShrink: 0 },
 
   // Doc library (tree + reader)
   docsWrap: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '1280px', margin: '0 auto', padding: 'clamp(12px, 2.5vw, 22px)', gap: '12px', boxSizing: 'border-box', animation: 'ab-fade 0.45s ease both' },
   docsBody: { flex: 1, minHeight: 0, display: 'flex', gap: '14px' },
   docsSide: { width: '250px', flexShrink: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '8px' },
-  docsSearch: { boxSizing: 'border-box', width: '100%', fontSize: '12.5px', padding: '9px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.25)', color: '#eaf2ff', outline: 'none', fontFamily: 'inherit' },
-  docsTree: { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: '1px', paddingRight: '4px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '6px' },
-  treeFolder: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'none', color: '#dbe7ff', cursor: 'pointer', font: 'inherit', fontSize: '12.5px', fontWeight: 600 },
-  treeCaret: { fontSize: '10px', color: '#5f6f92', width: '10px', flexShrink: 0 },
-  treeCount: { fontSize: '10px', fontWeight: 700, color: '#5f6f92', marginLeft: 'auto', flexShrink: 0 },
+  docsSearch: { boxSizing: 'border-box', width: '100%', fontSize: '12.5px', padding: '9px 12px', borderRadius: '10px', border: '1px solid var(--mu-line)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none', fontFamily: 'inherit' },
+  docsTree: { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: '1px', paddingRight: '4px', borderRadius: '12px', border: '1px solid var(--mu-wash-2)', background: 'var(--mu-wash)', padding: '6px' },
+  treeFolder: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '6px 8px', borderRadius: '8px', border: 'none', background: 'none', color: 'var(--mu-text-2)', cursor: 'pointer', font: 'inherit', fontSize: '12.5px', fontWeight: 600 },
+  treeCaret: { fontSize: '10px', color: 'var(--mu-text-4)', width: '10px', flexShrink: 0 },
+  treeCount: { fontSize: '10px', fontWeight: 700, color: 'var(--mu-text-4)', marginLeft: 'auto', flexShrink: 0 },
   treeLabel: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
-  treeFile: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '5px 8px', borderRadius: '8px', border: 'none', background: 'none', color: '#9fb2d6', cursor: 'pointer', font: 'inherit', fontSize: '12.5px' },
-  treeFileOn: { background: 'rgba(59,130,246,0.14)', color: '#eaf2ff', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.35)' },
+  treeFile: { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '5px 8px', borderRadius: '8px', border: 'none', background: 'none', color: 'var(--mu-text-3)', cursor: 'pointer', font: 'inherit', fontSize: '12.5px' },
+  treeFileOn: { background: 'color-mix(in srgb, var(--mu-accent) 14%, transparent)', color: 'var(--mu-text)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--mu-accent) 35%, transparent)' },
   readerPlaceholder: { height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', textAlign: 'center' },
 
   // Doc reader pane
   readerHead: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' },
-  readerTitle: { fontSize: '14px', fontWeight: 600, color: '#eaf2ff', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 },
-  readerBody: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,0,0,0.18)' },
-  rowItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', color: '#eaf2ff', padding: '10px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)' },
-  soon: { fontSize: '11px', color: '#5f6f92', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  histRow: { display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, boxSizing: 'border-box', textAlign: 'left', fontSize: '14px', color: '#eaf2ff', padding: '11px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer', font: 'inherit' },
+  readerTitle: { fontSize: '14px', fontWeight: 600, color: 'var(--mu-text)', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 },
+  readerBody: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 20px', borderRadius: '16px', border: '1px solid var(--mu-wash-2)', background: 'rgba(0,0,0,0.18)' },
+  rowItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', color: 'var(--mu-text)', padding: '10px 12px', borderRadius: '10px', background: 'var(--mu-wash)' },
+  soon: { fontSize: '11px', color: 'var(--mu-text-4)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  histRow: { display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, boxSizing: 'border-box', textAlign: 'left', fontSize: '14px', color: 'var(--mu-text)', padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--mu-wash-2)', background: 'var(--mu-wash)', cursor: 'pointer', font: 'inherit' },
   histBlock: { display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', boxSizing: 'border-box' },
   histLine: { display: 'flex', alignItems: 'stretch', gap: '8px', width: '100%', boxSizing: 'border-box' },
   histVersions: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', padding: '0 4px 2px 40px' },
-  histVerLabel: { display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', fontWeight: 700, color: '#5f6f92', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  histVerChip: { fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  histDelete: { flexShrink: 0, fontSize: '14px', padding: '0 12px', borderRadius: '10px', border: '1px solid rgba(248,113,113,0.28)', background: 'rgba(248,113,113,0.08)', color: '#fca5a5', cursor: 'pointer', fontFamily: 'inherit' },
-  delFilesRow: { display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#c9d6f2', cursor: 'pointer', font: 'inherit', fontSize: '13px', textAlign: 'left' },
-  delFilesOn: { border: '1px solid rgba(248,113,113,0.5)', background: 'rgba(248,113,113,0.1)', color: '#fecaca' },
-  dangerBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '14px', fontWeight: 700, padding: '12px 18px', borderRadius: '12px', border: '1px solid rgba(248,113,113,0.5)', background: 'rgba(248,113,113,0.16)', color: '#fecaca', cursor: 'pointer', fontFamily: 'inherit' },
-  pathCode: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', color: '#9fd8ff', wordBreak: 'break-all' },
-  histLaunch: { flexShrink: 0, fontSize: '15px', padding: '0 14px', borderRadius: '10px', border: '1px solid rgba(59,130,246,0.4)', background: 'rgba(59,130,246,0.14)', color: '#cfe4ff', cursor: 'pointer', fontFamily: 'inherit' },
-  launchBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '14px', fontWeight: 700, padding: '11px 18px', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.5)', background: 'rgba(59,130,246,0.18)', color: '#cfe4ff', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' },
+  histVerLabel: { display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '10.5px', fontWeight: 700, color: 'var(--mu-text-4)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  histVerChip: { fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  histDelete: { flexShrink: 0, fontSize: '14px', padding: '0 12px', borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--mu-err-bg) 28%, transparent)', background: 'color-mix(in srgb, var(--mu-err-bg) 8%, transparent)', color: 'var(--mu-err)', cursor: 'pointer', fontFamily: 'inherit' },
+  delFilesRow: { display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', color: 'var(--mu-text-2)', cursor: 'pointer', font: 'inherit', fontSize: '13px', textAlign: 'left' },
+  delFilesOn: { border: '1px solid color-mix(in srgb, var(--mu-err-bg) 50%, transparent)', background: 'color-mix(in srgb, var(--mu-err-bg) 10%, transparent)', color: 'var(--mu-err)' },
+  dangerBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '14px', fontWeight: 700, padding: '12px 18px', borderRadius: '12px', border: '1px solid color-mix(in srgb, var(--mu-err-bg) 50%, transparent)', background: 'color-mix(in srgb, var(--mu-err-bg) 16%, transparent)', color: 'var(--mu-err)', cursor: 'pointer', fontFamily: 'inherit' },
+  pathCode: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', color: 'var(--mu-link)', wordBreak: 'break-all' },
+  histLaunch: { flexShrink: 0, fontSize: '15px', padding: '0 14px', borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--mu-accent) 40%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 14%, transparent)', color: 'var(--mu-text-2)', cursor: 'pointer', fontFamily: 'inherit' },
+  launchBtn: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '14px', fontWeight: 700, padding: '11px 18px', borderRadius: '12px', border: '1px solid color-mix(in srgb, var(--mu-accent) 50%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 18%, transparent)', color: 'var(--mu-text-2)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' },
   histName: { flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 },
-  histDate: { fontSize: '11px', color: '#5f6f92', flexShrink: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace' },
-  histOpen: { display: 'inline-flex', alignItems: 'center', fontSize: '11px', color: '#7dd3fc', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 },
+  histDate: { fontSize: '11px', color: 'var(--mu-text-4)', flexShrink: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace' },
+  histOpen: { display: 'inline-flex', alignItems: 'center', fontSize: '11px', color: 'var(--mu-link)', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 },
 
   // Shared create screens
   center: { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '18px', padding: 'clamp(18px, 4vw, 32px)', animation: 'ab-fade 0.45s ease both' },
-  hero: { fontSize: 'clamp(40px, 12vw, 52px)', lineHeight: 1, filter: 'drop-shadow(0 6px 20px rgba(59,130,246,0.45))' },
-  h1: { fontSize: 'clamp(22px, 5.5vw, 28px)', fontWeight: 700, letterSpacing: '-0.015em', margin: 0, color: '#f4f8ff' },
-  h1small: { display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '22px', fontWeight: 700, margin: 0, color: '#eaf2ff' },
-  sub: { fontSize: '15px', color: '#9fb2d6', margin: 0, maxWidth: '42ch', lineHeight: 1.5 },
-  input: { width: '100%', maxWidth: '440px', boxSizing: 'border-box', fontSize: '17px', padding: '16px 18px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.25)', color: '#fff', outline: 'none', textAlign: 'center' },
-  prereqRow: { margin: 0, fontSize: '13px', color: '#dbe7ff' },
+  hero: { fontSize: 'clamp(40px, 12vw, 52px)', lineHeight: 1, filter: 'drop-shadow(0 6px 20px color-mix(in srgb, var(--mu-accent) 45%, transparent))' },
+  h1: { fontSize: 'clamp(22px, 5.5vw, 28px)', fontWeight: 700, letterSpacing: '-0.015em', margin: 0, color: 'var(--mu-text)' },
+  h1small: { display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '22px', fontWeight: 700, margin: 0, color: 'var(--mu-text)' },
+  sub: { fontSize: '15px', color: 'var(--mu-text-3)', margin: 0, maxWidth: '42ch', lineHeight: 1.5 },
+  input: { width: '100%', maxWidth: '440px', boxSizing: 'border-box', fontSize: '17px', padding: '16px 18px', borderRadius: '16px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none', textAlign: 'center' },
+  prereqRow: { margin: 0, fontSize: '13px', color: 'var(--mu-text-2)' },
 
   // Framing chat (BMAD one-question-at-a-time)
   briefWrap: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '820px', margin: '0 auto', padding: 'clamp(14px, 3vw, 24px)', gap: '12px', boxSizing: 'border-box', animation: 'ab-fade 0.45s ease both' },
   chatList: { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', padding: '6px 2px' },
-  bubbleMuse: { alignSelf: 'flex-start', maxWidth: '85%', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '14px 14px 14px 4px', padding: '10px 14px', fontSize: '14px', lineHeight: 1.55, color: '#dbe7ff', whiteSpace: 'pre-wrap' },
-  bubbleUser: { alignSelf: 'flex-end', maxWidth: '85%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px 14px 4px 14px', padding: '10px 14px', fontSize: '14px', lineHeight: 1.55, color: '#eaf2ff', whiteSpace: 'pre-wrap' },
+  bubbleMuse: { alignSelf: 'flex-start', maxWidth: '85%', background: 'color-mix(in srgb, var(--mu-accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-accent) 25%, transparent)', borderRadius: '14px 14px 14px 4px', padding: '10px 14px', fontSize: '14px', lineHeight: 1.55, color: 'var(--mu-text-2)', whiteSpace: 'pre-wrap' },
+  bubbleUser: { alignSelf: 'flex-end', maxWidth: '85%', background: 'var(--mu-wash-2)', border: '1px solid var(--mu-line)', borderRadius: '14px 14px 4px 14px', padding: '10px 14px', fontSize: '14px', lineHeight: 1.55, color: 'var(--mu-text)', whiteSpace: 'pre-wrap' },
   chatRow: { display: 'flex', gap: '10px', flexShrink: 0 },
-  chatInput: { flex: 1, minWidth: 0, boxSizing: 'border-box', fontSize: '15px', padding: '13px 16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.25)', color: '#fff', outline: 'none', fontFamily: 'inherit' },
-  chatSend: { width: '48px', flexShrink: 0, fontSize: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.14)', cursor: 'pointer', color: '#ffffff', background: 'linear-gradient(180deg, #4f93ff 0%, #2f6fe6 55%, #2560d0 100%)' },
+  chatInput: { flex: 1, minWidth: 0, boxSizing: 'border-box', fontSize: '15px', padding: '13px 16px', borderRadius: '14px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none', fontFamily: 'inherit' },
+  chatSend: { width: '48px', flexShrink: 0, fontSize: '16px', borderRadius: '12px', border: '1px solid var(--mu-line-2)', cursor: 'pointer', color: '#ffffff', background: 'linear-gradient(180deg, #2f6fe6 0%, #2560d0 55%, #1d4fb0 100%)' },
   chatFootRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flexShrink: 0 },
-  recap: { alignSelf: 'stretch', display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 18px', borderRadius: '14px', border: '1px solid rgba(94,214,160,0.3)', background: 'rgba(94,214,160,0.05)' },
-  recapList: { margin: 0, paddingLeft: '20px', fontSize: '13.5px', color: '#dbe7ff', display: 'flex', flexDirection: 'column', gap: '4px' },
-  recapNext: { margin: 0, fontSize: '12px', color: '#9fb2d6' },
-  resumeRow: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '12px', border: '1px dashed rgba(125,211,252,0.35)', background: 'rgba(59,130,246,0.07)', fontSize: '13px' },
-  resumeText: { flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#dbe7ff' },
+  recap: { alignSelf: 'stretch', display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 18px', borderRadius: '14px', border: '1px solid color-mix(in srgb, var(--mu-ok) 30%, transparent)', background: 'color-mix(in srgb, var(--mu-ok) 5%, transparent)' },
+  recapList: { margin: 0, paddingLeft: '20px', fontSize: '13.5px', color: 'var(--mu-text-2)', display: 'flex', flexDirection: 'column', gap: '4px' },
+  recapNext: { margin: 0, fontSize: '12px', color: 'var(--mu-text-3)' },
+  resumeRow: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '12px', border: '1px dashed color-mix(in srgb, var(--mu-link) 35%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 7%, transparent)', fontSize: '13px' },
+  resumeText: { flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--mu-text-2)' },
   // Project board (mini-Gantt)
   boardTitleCol: { display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0, flex: 1 },
   boardTitleRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
-  gantt: { display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '16px 10px', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', background: 'rgba(255,255,255,0.02)' },
+  gantt: { display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '16px 10px', border: '1px solid var(--mu-wash-2)', borderRadius: '16px', background: 'var(--mu-wash)' },
   ganttSeg: { display: 'flex', alignItems: 'flex-start', flex: '1 1 0', minWidth: 0 },
   ganttSegLast: { display: 'flex', alignItems: 'flex-start', flex: '0 0 auto' },
   ganttNode: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px', minWidth: '92px', font: 'inherit', flexShrink: 0 },
   ganttDot: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', transition: 'transform .15s ease, box-shadow .2s ease' },
   ganttDotSel: { transform: 'scale(1.14)' },
-  ganttLabel: { fontSize: '11.5px', fontWeight: 600, color: '#9fb2d6', whiteSpace: 'nowrap' },
-  ganttStatus: { fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5f6f92' },
-  ganttLine: { flex: '1 1 26px', minWidth: '16px', height: '2px', background: 'rgba(255,255,255,0.1)', marginTop: '19px', borderRadius: '1px' },
-  boardDetail: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', padding: '18px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', minHeight: '160px' },
+  ganttLabel: { fontSize: '11.5px', fontWeight: 600, color: 'var(--mu-text-3)', whiteSpace: 'nowrap' },
+  ganttStatus: { fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--mu-text-4)' },
+  ganttLine: { flex: '1 1 26px', minWidth: '16px', height: '2px', background: 'var(--mu-line)', marginTop: '19px', borderRadius: '1px' },
+  boardDetail: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', padding: '18px 20px', borderRadius: '16px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', minHeight: '160px' },
   boardCols: { display: 'flex', gap: '14px', alignItems: 'stretch' },
-  projFilesPanel: { width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '3px', padding: '14px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', maxHeight: '440px', overflowY: 'auto', boxSizing: 'border-box' },
-  projFilesTitle: { margin: '0 0 6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9fb2d6' },
-  projFileRow: { display: 'flex', alignItems: 'center', gap: '7px', textAlign: 'left', padding: '5px 8px', borderRadius: '8px', border: 'none', background: 'none', color: '#c9d6f2', cursor: 'pointer', font: 'inherit', fontSize: '12px', width: '100%', boxSizing: 'border-box' },
+  projFilesPanel: { width: '252px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '3px', padding: '14px', borderRadius: '16px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', maxHeight: '440px', overflowY: 'auto', boxSizing: 'border-box' },
+  projFilesTitle: { margin: '0 0 6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--mu-text-3)' },
+  projFileRow: { display: 'flex', alignItems: 'center', gap: '7px', textAlign: 'left', padding: '5px 8px', borderRadius: '8px', border: 'none', background: 'none', color: 'var(--mu-text-2)', cursor: 'pointer', font: 'inherit', fontSize: '12px', width: '100%', boxSizing: 'border-box' },
   projFileName: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
-  designSummary: { fontSize: '13px', color: '#9fb2d6', lineHeight: 1.5 },
+  designSummary: { fontSize: '13px', color: 'var(--mu-text-3)', lineHeight: 1.5 },
   optRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  optLabel: { fontSize: '12px', color: '#9fb2d6', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 },
-  creditLine: { margin: 0, fontSize: '12.5px', color: '#9fb2d6' },
+  optLabel: { fontSize: '12px', color: 'var(--mu-text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 },
+  creditLine: { margin: 0, fontSize: '12.5px', color: 'var(--mu-text-3)' },
   artRow: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
-  artCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', minWidth: '210px' },
-  artName: { fontSize: '14px', fontWeight: 700, color: '#eaf2ff' },
-  artFile: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11px', color: '#5f6f92' },
-  mcpCard: { alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px', marginTop: '8px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)' },
-  mcpSnippet: { width: '100%', boxSizing: 'border-box', margin: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11px', lineHeight: 1.55, color: '#b7c7e8', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 12px', maxHeight: '160px', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' },
-  viewerModal: { width: 'min(94vw, 920px)', maxHeight: '88vh', display: 'flex', flexDirection: 'column', gap: '12px', background: '#0f1830', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '18px 20px', boxShadow: '0 30px 80px rgba(0,0,0,0.55)', boxSizing: 'border-box' },
+  artCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', padding: '14px 16px', borderRadius: '12px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', minWidth: '210px' },
+  artName: { fontSize: '14px', fontWeight: 700, color: 'var(--mu-text)' },
+  artFile: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11px', color: 'var(--mu-text-4)' },
+  mcpCard: { alignSelf: 'stretch', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px', marginTop: '8px', paddingTop: '14px', borderTop: '1px solid var(--mu-line)' },
+  mcpSnippet: { width: '100%', boxSizing: 'border-box', margin: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11px', lineHeight: 1.55, color: 'var(--mu-text-2)', background: 'rgba(0,0,0,0.35)', border: '1px solid var(--mu-line)', borderRadius: '10px', padding: '10px 12px', maxHeight: '160px', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' },
+  viewerModal: { width: 'min(94vw, 920px)', maxHeight: '88vh', display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--mu-panel)', border: '1px solid var(--mu-line)', borderRadius: '20px', padding: '18px 20px', boxShadow: '0 30px 80px rgba(0,0,0,0.55)', boxSizing: 'border-box' },
 
   // Design step
   designGrid: { display: 'flex', gap: '22px', flexWrap: 'wrap', width: '100%' },
   designCol: { display: 'flex', flexDirection: 'column', gap: '10px', flex: '1 1 260px', minWidth: '240px' },
-  wheel: { width: '168px', height: '168px', borderRadius: '50%', position: 'relative', cursor: 'crosshair', flexShrink: 0, background: 'conic-gradient(from 0deg, #f00, #ff0 60deg, #0f0 120deg, #0ff 180deg, #00f 240deg, #f0f 300deg, #f00 360deg)', boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.35)' },
+  wheel: { width: '168px', height: '168px', borderRadius: '50%', position: 'relative', cursor: 'crosshair', flexShrink: 0, background: 'conic-gradient(from 0deg, #f00, #ff0 60deg, #0f0 120deg, #0ff 180deg, #00f 240deg, #f0f 300deg, #f00 360deg)', boxShadow: 'inset 0 0 0 2px var(--mu-line-2), 0 8px 24px rgba(0,0,0,0.35)' },
   wheelDot: { position: 'absolute', width: '18px', height: '18px', borderRadius: '50%', border: '2px solid #fff', transform: 'translate(-50%, -50%)', boxShadow: '0 0 10px rgba(0,0,0,0.65)', pointerEvents: 'none' },
   swRow: { display: 'flex', gap: '6px', alignItems: 'center' },
-  sw: { width: '26px', height: '26px', borderRadius: '7px', border: '1px solid rgba(255,255,255,0.18)', flexShrink: 0 },
-  trendBox: { padding: '12px 14px', borderRadius: '12px', border: '1px dashed rgba(139,124,240,0.4)', background: 'rgba(139,124,240,0.06)', fontSize: '12.5px', color: '#9fb2d6', lineHeight: 1.55 },
+  sw: { width: '26px', height: '26px', borderRadius: '7px', border: '1px solid var(--mu-line-3)', flexShrink: 0 },
+  trendBox: { padding: '12px 14px', borderRadius: '12px', border: '1px dashed rgba(139,124,240,0.4)', background: 'rgba(139,124,240,0.06)', fontSize: '12.5px', color: 'var(--mu-text-3)', lineHeight: 1.55 },
   viewerHead: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flexShrink: 0 },
-  viewerTitle: { fontSize: '14px', fontWeight: 700, color: '#eaf2ff', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '46ch' },
-  viewerBody: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.22)' },
+  viewerTitle: { fontSize: '14px', fontWeight: 700, color: 'var(--mu-text)', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '46ch' },
+  viewerBody: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 16px', borderRadius: '12px', border: '1px solid var(--mu-wash-2)', background: 'rgba(0,0,0,0.22)' },
 
-  memLabel: { display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '2px 0 0', fontSize: '11.5px', fontWeight: 700, color: '#5f6f92', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  memLabel: { display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '2px 0 0', fontSize: '11.5px', fontWeight: 700, color: 'var(--mu-text-4)', textTransform: 'uppercase', letterSpacing: '0.06em' },
   styleRow: { display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' },
   verRow: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 },
-  verChip: { fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  verChipOn: { border: '1px solid rgba(59,130,246,0.6)', background: 'rgba(59,130,246,0.16)', color: '#7dd3fc' },
-  regenPanel: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.03)', flexShrink: 0, boxSizing: 'border-box' },
-  styleCard: { display: 'flex', flexDirection: 'column', gap: '5px', width: '104px', padding: '7px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', font: 'inherit', color: '#c9d6f2', textAlign: 'left' },
-  styleCardOn: { border: '1px solid rgba(59,130,246,0.6)', background: 'rgba(59,130,246,0.12)' },
-  styleThumb: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '34px', borderRadius: '6px', fontSize: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' },
+  verChip: { fontSize: '12px', fontWeight: 700, padding: '6px 12px', borderRadius: '999px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  verChipOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 60%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 16%, transparent)', color: 'var(--mu-link)' },
+  regenPanel: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '14px 16px', borderRadius: '14px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', flexShrink: 0, boxSizing: 'border-box' },
+  styleCard: { display: 'flex', flexDirection: 'column', gap: '5px', width: '104px', padding: '7px', borderRadius: '10px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', cursor: 'pointer', font: 'inherit', color: 'var(--mu-text-2)', textAlign: 'left' },
+  styleCardOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 60%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 12%, transparent)' },
+  styleThumb: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '34px', borderRadius: '6px', fontSize: '12px', overflow: 'hidden', border: '1px solid var(--mu-wash-2)' },
   styleCardName: { fontSize: '11px', fontWeight: 600, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  memCount: { fontSize: '10.5px', color: '#5f6f92', fontWeight: 700 },
+  memCount: { fontSize: '10.5px', color: 'var(--mu-text-4)', fontWeight: 700 },
   memBar: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%' },
-  memSummary: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, padding: '9px 16px', borderRadius: '999px', border: '1px solid rgba(59,130,246,0.45)', background: 'rgba(59,130,246,0.12)', color: '#cfe4ff', cursor: 'pointer', fontFamily: 'inherit' },
-  memPick: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, padding: '5px 8px 5px 12px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#c9d6f2' },
-  memPickX: { fontSize: '11px', lineHeight: 1, padding: '3px 5px', borderRadius: '999px', border: 'none', background: 'rgba(255,255,255,0.08)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
+  memSummary: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, padding: '9px 16px', borderRadius: '999px', border: '1px solid color-mix(in srgb, var(--mu-accent) 45%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 12%, transparent)', color: 'var(--mu-text-2)', cursor: 'pointer', fontFamily: 'inherit' },
+  memPick: { display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, padding: '5px 8px 5px 12px', borderRadius: '999px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-2)' },
+  memPickX: { fontSize: '11px', lineHeight: 1, padding: '3px 5px', borderRadius: '999px', border: 'none', background: 'var(--mu-line)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
   // One line, always: the vault list is elided rather than allowed to wrap.
-  memGround: { display: 'inline-flex', alignItems: 'center', gap: '6px', maxWidth: '100%', minWidth: 0, fontSize: '11.5px', fontWeight: 600, padding: '5px 11px', borderRadius: '999px', border: '1px solid rgba(52,211,153,0.35)', background: 'rgba(52,211,153,0.10)', color: '#a7e8cd' },
+  memGround: { display: 'inline-flex', alignItems: 'center', gap: '6px', maxWidth: '100%', minWidth: 0, fontSize: '11.5px', fontWeight: 600, padding: '5px 11px', borderRadius: '999px', border: '1px solid rgba(52,211,153,0.35)', background: 'rgba(52,211,153,0.10)', color: 'var(--mu-ok)' },
   memGroundText: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   memGroundWarn: { border: '1px solid rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.12)', color: '#f3d089' },
   memOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,16,0.62)', display: 'flex', justifyContent: 'flex-end', zIndex: 60, animation: 'ab-fade 0.2s ease both' },
-  memDrawer: { width: 'min(440px, 92vw)', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px', background: '#0d1526', borderLeft: '1px solid rgba(255,255,255,0.1)', boxShadow: '-24px 0 60px rgba(0,0,0,0.5)', animation: 'ab-slide-in 0.26s cubic-bezier(0.22,1,0.36,1) both' },
+  memDrawer: { width: 'min(440px, 92vw)', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px', background: 'var(--mu-panel)', borderLeft: '1px solid var(--mu-line)', boxShadow: '-24px 0 60px rgba(0,0,0,0.5)', animation: 'ab-slide-in 0.26s cubic-bezier(0.22,1,0.36,1) both' },
   memDrawerHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexShrink: 0 },
-  memDrawerTitle: { display: 'inline-flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '15px', fontWeight: 700, color: '#eaf2ff' },
-  memDrawerSub: { margin: '4px 0 0', fontSize: '12.5px', lineHeight: 1.5, color: '#8296bb' },
+  memDrawerTitle: { display: 'inline-flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--mu-text)' },
+  memDrawerSub: { margin: '4px 0 0', fontSize: '12.5px', lineHeight: 1.5, color: 'var(--mu-text-3)' },
   memModes: { display: 'flex', gap: '6px', flexShrink: 0 },
-  memModeCard: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, minWidth: 0, padding: '8px 6px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.03)', color: '#c9d6f2', cursor: 'pointer', font: 'inherit', fontSize: '12.5px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  memModeOn: { border: '1px solid rgba(59,130,246,0.6)', background: 'rgba(59,130,246,0.14)', color: '#eaf2ff' },
-  memGroupHead: { display: 'flex', alignItems: 'center', gap: '7px', width: '100%', padding: '5px 2px', border: 'none', background: 'none', cursor: 'pointer', font: 'inherit', color: '#5f6f92' },
+  memModeCard: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, minWidth: 0, padding: '8px 6px', borderRadius: '10px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', color: 'var(--mu-text-2)', cursor: 'pointer', font: 'inherit', fontSize: '12.5px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  memModeOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 60%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 14%, transparent)', color: 'var(--mu-text)' },
+  memGroupHead: { display: 'flex', alignItems: 'center', gap: '7px', width: '100%', padding: '5px 2px', border: 'none', background: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--mu-text-4)' },
   memCaret: { fontSize: '9px', width: '9px', flexShrink: 0 },
   memGroupName: { flex: 1, minWidth: 0, textAlign: 'left', fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' },
   memGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: '6px' },
-  memTile: { display: 'flex', flexDirection: 'column', gap: '3px', padding: '8px 9px', borderRadius: '10px', border: '1px solid', cursor: 'pointer', font: 'inherit', color: '#eaf2ff', textAlign: 'left', minWidth: 0 },
+  memTile: { display: 'flex', flexDirection: 'column', gap: '3px', padding: '8px 9px', borderRadius: '10px', border: '1px solid', cursor: 'pointer', font: 'inherit', color: 'var(--mu-text)', textAlign: 'left', minWidth: 0 },
   memTileTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', height: '16px' },
   memLock: { display: 'inline-flex', alignItems: 'center', color: '#f0b840' },
-  memTileCheck: { width: '15px', height: '15px', marginLeft: 'auto', flexShrink: 0, borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700 },
+  memTileCheck: { width: '15px', height: '15px', marginLeft: 'auto', flexShrink: 0, borderRadius: '4px', border: '1px solid var(--mu-line-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700 },
   memTileName: { fontSize: '12px', fontWeight: 600, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  memTileCount: { fontSize: '10.5px', color: '#5f6f92', fontWeight: 700 },
+  memTileCount: { fontSize: '10.5px', color: 'var(--mu-text-4)', fontWeight: 700 },
   memDrawerBody: { flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' },
   memSection: { display: 'flex', flexDirection: 'column', gap: '3px' },
-  memCheckOn: { border: '1px solid rgba(59,130,246,0.7)', background: 'rgba(59,130,246,0.3)', color: '#eaf2ff' },
-  memDrawerFoot: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexShrink: 0, paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' },
-  imgFolderRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' },
-  imgFolderPath: { fontSize: '12.5px', fontWeight: 600, color: '#c9d6f2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  imgCaptionList: { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' },
+  memCheckOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 70%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 30%, transparent)', color: 'var(--mu-text)' },
+  memDrawerFoot: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexShrink: 0, paddingTop: '12px', borderTop: '1px solid var(--mu-line)' },
+  imgFolderRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '8px 10px', borderRadius: '10px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)' },
+  imgFolderPath: { fontSize: '12.5px', fontWeight: 600, color: 'var(--mu-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  imgCaptionList: { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', paddingTop: '10px', borderTop: '1px solid var(--mu-line)' },
   imgCaptionRow: { display: 'flex', alignItems: 'center', gap: '8px' },
-  imgCaptionName: { flexShrink: 0, width: '110px', fontSize: '11.5px', color: '#8296bb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  imgCaptionInput: { flex: 1, minWidth: 0, fontSize: '12.5px', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#eaf2ff', fontFamily: 'inherit' },
+  imgCaptionName: { flexShrink: 0, width: '110px', fontSize: '11.5px', color: 'var(--mu-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  imgCaptionInput: { flex: 1, minWidth: 0, fontSize: '12.5px', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', color: 'var(--mu-text)', fontFamily: 'inherit' },
   memDot: { width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0 },
   modeRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  modeChip: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, padding: '7px 14px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  modeChipOn: { border: '1px solid rgba(59,130,246,0.6)', background: 'rgba(59,130,246,0.16)', color: '#7dd3fc', boxShadow: '0 0 0 1px rgba(59,130,246,0.35)' },
-  freshBadge: { alignSelf: 'flex-start', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5ed6a0', background: 'rgba(94,214,160,0.12)', border: '1px solid rgba(94,214,160,0.3)', borderRadius: '999px', padding: '3px 9px' },
-  laneBadge: { display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#7dd3fc', background: 'rgba(59,130,246,0.14)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '999px', padding: '3px 10px' },
-  stepCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px', padding: '16px 18px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' },
-  stepTitle: { margin: 0, fontSize: '14px', fontWeight: 700, color: '#eaf2ff' },
-  promptBox: { width: '100%', boxSizing: 'border-box', margin: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', lineHeight: 1.55, color: '#b7c7e8', background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px', maxHeight: '260px', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' },
-  primary: { width: '100%', maxWidth: '440px', fontSize: '16px', fontWeight: 600, letterSpacing: '0.01em', padding: '15px 22px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.14)', cursor: 'pointer', color: '#ffffff', background: 'linear-gradient(180deg, #4f93ff 0%, #2f6fe6 55%, #2560d0 100%)', boxShadow: '0 8px 22px rgba(37,99,235,0.32), inset 0 1px 0 rgba(255,255,255,0.28)' },
-  secondary: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '14px', fontWeight: 600, letterSpacing: '0.01em', padding: '11px 18px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.06)', color: '#dbe7ff', cursor: 'pointer', whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' },
-  back: { background: 'none', border: 'none', color: '#5f6f92', fontSize: '14px', cursor: 'pointer' },
-  error: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', textAlign: 'center' },
+  modeChip: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, padding: '7px 14px', borderRadius: '999px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  modeChipOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 60%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 16%, transparent)', color: 'var(--mu-link)', boxShadow: '0 0 0 1px color-mix(in srgb, var(--mu-accent) 35%, transparent)' },
+  freshBadge: { alignSelf: 'flex-start', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mu-ok)', background: 'color-mix(in srgb, var(--mu-ok) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-ok) 30%, transparent)', borderRadius: '999px', padding: '3px 9px' },
+  laneBadge: { display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--mu-link)', background: 'color-mix(in srgb, var(--mu-accent) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-accent) 30%, transparent)', borderRadius: '999px', padding: '3px 10px' },
+  stepCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px', padding: '16px 18px', borderRadius: '14px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)' },
+  stepTitle: { margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--mu-text)' },
+  promptBox: { width: '100%', boxSizing: 'border-box', margin: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', lineHeight: 1.55, color: 'var(--mu-text-2)', background: 'rgba(0,0,0,0.35)', border: '1px solid var(--mu-line)', borderRadius: '10px', padding: '12px 14px', maxHeight: '260px', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'left' },
+  primary: { width: '100%', maxWidth: '440px', fontSize: '16px', fontWeight: 600, letterSpacing: '0.01em', padding: '15px 22px', borderRadius: '14px', border: '1px solid var(--mu-line-2)', cursor: 'pointer', color: '#ffffff', background: 'linear-gradient(180deg, #2f6fe6 0%, #2560d0 55%, #1d4fb0 100%)', boxShadow: '0 8px 22px rgba(37,99,235,0.32), inset 0 1px 0 var(--mu-line-3)' },
+  secondary: { display: 'inline-flex', alignItems: 'center', gap: '7px', fontSize: '14px', fontWeight: 600, letterSpacing: '0.01em', padding: '11px 18px', borderRadius: '12px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-2)', cursor: 'pointer', whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' },
+  back: { background: 'none', border: 'none', color: 'var(--mu-text-4)', fontSize: '14px', cursor: 'pointer' },
+  error: { background: 'color-mix(in srgb, var(--mu-err-bg) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-err-bg) 25%, transparent)', color: 'var(--mu-err)', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', textAlign: 'center' },
 
   // Done. Same scroller/inner split as the dashboard (edge-hugging scrollbar).
   // Full-height column: header + notice keep their natural size, the document
@@ -575,7 +598,7 @@ export const S: Record<string, CSSProperties> = {
   doneTitleCol: { display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 420px', minWidth: 0 },
   // Two lines max on a wide measure — a long purpose used to wrap into a
   // narrow column and push the whole page down.
-  doneSub: { fontSize: '14px', color: '#9fb2d6', margin: 0, lineHeight: 1.5, maxWidth: '90ch', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
+  doneSub: { fontSize: '14px', color: 'var(--mu-text-3)', margin: 0, lineHeight: 1.5, maxWidth: '90ch', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
   doneNote: { margin: 0, fontSize: '12.5px', lineHeight: 1.5, wordBreak: 'break-word', flexShrink: 0 },
-  preview: { flex: 1, minHeight: '240px', width: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', background: '#fff', boxShadow: '0 18px 50px rgba(0,0,0,0.45)' },
+  preview: { flex: 1, minHeight: '240px', width: '100%', border: '1px solid var(--mu-line)', borderRadius: '18px', background: '#fff', boxShadow: '0 18px 50px rgba(0,0,0,0.45)' },
 };

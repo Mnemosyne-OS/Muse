@@ -27,6 +27,14 @@ export function dateLocale(lang: LangCode): string {
 
 const BUNDLES: Record<LangCode, Record<string, unknown>> = { en, fr, es };
 
+/** Keep `<html lang>` on the real language. It is not decoration: a screen
+ *  reader picks its pronunciation from it, and a document that claims French
+ *  while showing English is read aloud as gibberish. index.html can only ship
+ *  one value, so the truth is set here — at load and on every switch. */
+function syncDocumentLang(lang: LangCode): void {
+  if (typeof document !== 'undefined') document.documentElement.lang = lang;
+}
+
 function isLang(v: unknown): v is LangCode {
   return v === 'en' || v === 'fr' || v === 'es';
 }
@@ -46,6 +54,7 @@ function initialLang(): LangCode {
 // Singleton, like the host's: every component reads the same language without
 // threading a Context through the tree.
 let _lang: LangCode = initialLang();
+syncDocumentLang(_lang);
 const _listeners = new Set<() => void>();
 
 export function getLang(): LangCode { return _lang; }
@@ -53,17 +62,19 @@ export function getLang(): LangCode { return _lang; }
 export function setLang(lang: LangCode): void {
   if (lang === _lang) return;
   _lang = lang;
+  syncDocumentLang(lang);
   _listeners.forEach((fn) => fn());
 }
 
-// The shell pushes the language when the user changes it. Registered once at
-// module load: the listener must outlive any single component.
-if (typeof window !== 'undefined') {
-  window.addEventListener('message', (e: MessageEvent) => {
-    if (e.source !== window.parent) return; // host frame only
-    const data = e.data as { type?: string; lang?: unknown } | null;
-    if (data?.type === 'MNEMO_CONFIG_UPDATE' && isLang(data.lang)) setLang(data.lang);
-  });
+/** Take the shell's language, if it is one Muse actually ships.
+ *
+ *  Called from main.tsx's single `onHostConfig` subscription rather than from
+ *  a second `message` listener of our own: the SDK already owns that contract
+ *  (and its origin check), and two listeners on the same message is one place
+ *  too many for the rule to drift. An unknown locale is IGNORED — falling back
+ *  to what the user is already reading beats switching them to English. */
+export function adoptHostLang(lang: unknown): void {
+  if (isLang(lang)) setLang(lang);
 }
 
 /** Resolve "a.b.c" against a bundle; returns null when absent. */

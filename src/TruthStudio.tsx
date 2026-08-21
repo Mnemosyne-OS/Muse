@@ -73,7 +73,7 @@ export function TruthStudio(props: {
                 style={TS.box}
                 value={props.userNote}
                 onChange={(e) => props.setUserNote(e.target.value)}
-                placeholder={t('truth.step1Placeholder')}
+                placeholder={t('truth.step1Placeholder')} aria-label={t('truth.step1Placeholder')}
                 rows={5}
               />
               <p style={TS.hint}>{t('truth.step1Keep')}</p>
@@ -97,7 +97,7 @@ export function TruthStudio(props: {
               >{runLabel}</button>
               {!props.canRun && !busy && <p style={TS.hint}>{t('truth.nothingYet')}</p>}
               {props.msg && (
-                <p style={{ ...TS.hint, color: props.state === 'error' ? '#fca5a5' : done ? '#5ed6a0' : '#9fb2d6' }}>
+                <p style={{ ...TS.hint, color: props.state === 'error' ? 'var(--mu-err)' : done ? 'var(--mu-ok)' : 'var(--mu-text-3)' }}>
                   {done ? '✅ ' : props.state === 'error' ? '⚠️ ' : ''}{props.msg}
                 </p>
               )}
@@ -129,7 +129,7 @@ export function TruthStudio(props: {
                       ))}
                     </>
                   )}
-                  {props.agent?.summary && <p style={{ ...TS.item, fontStyle: 'italic', color: '#9fb2d6' }}>{props.agent.summary}</p>}
+                  {props.agent?.summary && <p style={{ ...TS.item, fontStyle: 'italic', color: 'var(--mu-text-3)' }}>{props.agent.summary}</p>}
                   {alerts.length > 0 && (
                     <>
                       <p style={TS.listTitle}>{t('truth.alerts')}</p>
@@ -155,7 +155,7 @@ export function TruthStudio(props: {
                 style={TS.box}
                 value={props.ideReply}
                 onChange={(e) => props.setIdeReply(e.target.value)}
-                placeholder={t('truth.replyPlaceholder')}
+                placeholder={t('truth.replyPlaceholder')} aria-label={t('truth.replyPlaceholder')}
                 rows={7}
               />
               <button
@@ -175,27 +175,27 @@ const TS: Record<string, CSSProperties> = {
   wrap: { flex: 1, minHeight: 0, overflowY: 'auto', width: '100%', boxSizing: 'border-box', animation: 'ab-fade 0.45s ease both' },
   inner: { width: '100%', maxWidth: '1280px', margin: '0 auto', padding: 'clamp(14px, 3vw, 26px)', display: 'flex', flexDirection: 'column', gap: '16px', boxSizing: 'border-box' },
   head: { display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' },
-  title: { fontSize: '22px', fontWeight: 700, margin: 0, color: '#eaf2ff' },
-  sub: { fontSize: '13.5px', color: '#9fb2d6', margin: 0, lineHeight: 1.6 },
-  secondary: { fontSize: '14px', fontWeight: 600, padding: '11px 18px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.06)', color: '#dbe7ff', cursor: 'pointer', whiteSpace: 'nowrap' },
+  title: { fontSize: '22px', fontWeight: 700, margin: 0, color: 'var(--mu-text)' },
+  sub: { fontSize: '13.5px', color: 'var(--mu-text-3)', margin: 0, lineHeight: 1.6 },
+  secondary: { fontSize: '14px', fontWeight: 600, padding: '11px 18px', borderRadius: '12px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-2)', cursor: 'pointer', whiteSpace: 'nowrap' },
   cols: { display: 'flex', gap: '18px', alignItems: 'flex-start', flexWrap: 'wrap' },
   col: { display: 'flex', flexDirection: 'column', gap: '14px', flex: '1 1 400px', minWidth: '300px' },
-  panel: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 18px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', boxSizing: 'border-box' },
-  step: { margin: 0, fontSize: '12px', fontWeight: 700, color: '#9fb2d6', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
-  hint: { margin: 0, fontSize: '12.5px', lineHeight: 1.6, color: '#8296bb' },
-  listTitle: { margin: '4px 0 0', fontSize: '11.5px', fontWeight: 700, color: '#5f6f92', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  item: { margin: 0, fontSize: '12.5px', lineHeight: 1.55, color: '#c9d6f2', wordBreak: 'break-word' },
+  panel: { display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 18px', borderRadius: '16px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', boxSizing: 'border-box' },
+  step: { margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--mu-text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
+  hint: { margin: 0, fontSize: '12.5px', lineHeight: 1.6, color: 'var(--mu-text-3)' },
+  listTitle: { margin: '4px 0 0', fontSize: '11.5px', fontWeight: 700, color: 'var(--mu-text-4)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  item: { margin: 0, fontSize: '12.5px', lineHeight: 1.55, color: 'var(--mu-text-2)', wordBreak: 'break-word' },
   scroll: { display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px' },
-  box: { width: '100%', boxSizing: 'border-box', fontSize: '13px', lineHeight: 1.55, padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.25)', color: '#e6eeff', outline: 'none', fontFamily: 'inherit', resize: 'vertical' },
+  box: { width: '100%', boxSizing: 'border-box', fontSize: '13px', lineHeight: 1.55, padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none', fontFamily: 'inherit', resize: 'vertical' },
   chipRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  chip: { fontSize: '12.5px', fontWeight: 600, padding: '7px 14px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  chipOn: { border: '1px solid rgba(59,130,246,0.6)', background: 'rgba(59,130,246,0.16)', color: '#7dd3fc' },
-  primary: { fontSize: '14px', fontWeight: 700, padding: '12px 18px', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.5)', background: 'rgba(59,130,246,0.16)', color: '#cfe4ff', cursor: 'pointer', fontFamily: 'inherit' },
-  link: { fontSize: '13px', fontWeight: 600, padding: '9px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.05)', color: '#dbe7ff', cursor: 'pointer', fontFamily: 'inherit' },
+  chip: { fontSize: '12.5px', fontWeight: 600, padding: '7px 14px', borderRadius: '999px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  chipOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 60%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 16%, transparent)', color: 'var(--mu-link)' },
+  primary: { fontSize: '14px', fontWeight: 700, padding: '12px 18px', borderRadius: '12px', border: '1px solid color-mix(in srgb, var(--mu-accent) 50%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 16%, transparent)', color: 'var(--mu-text-2)', cursor: 'pointer', fontFamily: 'inherit' },
+  link: { fontSize: '13px', fontWeight: 600, padding: '9px 14px', borderRadius: '10px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-2)', cursor: 'pointer', fontFamily: 'inherit' },
   btnRow: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
   badge: { fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '999px', letterSpacing: '0.02em', textTransform: 'none' },
-  badgeRed: { border: '1px solid rgba(248,113,113,0.45)', background: 'rgba(248,113,113,0.12)', color: '#fca5a5' },
-  badgeGreen: { border: '1px solid rgba(94,214,160,0.45)', background: 'rgba(94,214,160,0.12)', color: '#5ed6a0' },
-  error: { fontSize: '13px', color: '#fca5a5', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(248,113,113,0.35)', background: 'rgba(248,113,113,0.08)' },
-  code: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', background: 'rgba(125,211,252,0.1)', border: '1px solid rgba(125,211,252,0.15)', borderRadius: '5px', padding: '1px 5px', color: '#9fd8ff', margin: '0 4px' },
+  badgeRed: { border: '1px solid color-mix(in srgb, var(--mu-err-bg) 45%, transparent)', background: 'color-mix(in srgb, var(--mu-err-bg) 12%, transparent)', color: 'var(--mu-err)' },
+  badgeGreen: { border: '1px solid color-mix(in srgb, var(--mu-ok) 45%, transparent)', background: 'color-mix(in srgb, var(--mu-ok) 12%, transparent)', color: 'var(--mu-ok)' },
+  error: { fontSize: '13px', color: 'var(--mu-err)', padding: '10px 12px', borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--mu-err-bg) 35%, transparent)', background: 'color-mix(in srgb, var(--mu-err-bg) 8%, transparent)' },
+  code: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', background: 'color-mix(in srgb, var(--mu-link) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-link) 15%, transparent)', borderRadius: '5px', padding: '1px 5px', color: 'var(--mu-link)', margin: '0 4px' },
 };

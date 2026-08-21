@@ -74,20 +74,20 @@ export function DashboardScreen({
           <Logo mode="mark" />
           <span style={S.brandName}>Muse</span>
           <ChannelBadge />
-          <span style={S.brandTag}>Neural Coding</span>
+          <span style={S.brandTag}>{t('intro.neural')}</span>
         </div>
         {/* Top action bar — more icons will land here over time. */}
         <div style={S.headActions}>
-          <button style={S.iconBtn} title={t('pref.open')} onClick={onOpenDesignPref}>
+          <button style={S.iconBtn} title={t('pref.open')} aria-label={t('pref.open')} onClick={onOpenDesignPref}>
             <GPalette size={15} />
           </button>
-          <button style={S.iconBtn} title={t('dash.docLibrary')} onClick={onOpenDocs}>
+          <button style={S.iconBtn} title={t('dash.docLibrary')} aria-label={t('dash.docLibrary')} onClick={onOpenDocs}>
             <BookIcon />
           </button>
         </div>
       </header>
       {error && (
-        <div style={S.error}>
+        <div role="alert" style={S.error}>
           ⚠️ {error}
           {onRetryBoot && <button className="mu-btn" style={{ marginLeft: 10 }} onClick={onRetryBoot}>{t('err.retry')}</button>}
         </div>
@@ -98,7 +98,7 @@ export function DashboardScreen({
         <input
           ref={quickRef}
           autoFocus style={S.quickInput}
-          placeholder={t('dash.placeholder')}
+          placeholder={t('dash.placeholder')} aria-label={t('dash.placeholder')}
           onKeyDown={(e) => {
             const v = (e.target as HTMLInputElement).value;
             if (e.key === 'Enter' && v.trim()) onQuickLaunch(v);
@@ -149,7 +149,7 @@ export function DashboardScreen({
               <button
                 className="mu-btn"
                 style={S.memPickX}
-                title={t('mem.remove', { name: v.displayName })}
+                title={t('mem.remove', { name: v.displayName })} aria-label={t('mem.remove', { name: v.displayName })}
                 onClick={() => onSetMemVault((cur) => {
                   const left = (cur?.vaults ?? []).filter((x) => x.vaultId !== v.vaultId);
                   return left.length ? { mode: 'pick', vaults: left } : { mode: 'all', vaults: [] };
@@ -165,7 +165,7 @@ export function DashboardScreen({
         <div style={S.resumeRow}>
           <span style={S.resumeText}>{t('brief.resumeLabel')} « {savedFraming.idea.slice(0, 90)}{savedFraming.idea.length > 90 ? '…' : ''} »</span>
           <button className="mu-btn" style={S.ideLinkPrimary} onClick={onResumeFraming}>{t('brief.resumeCta')}</button>
-          <button className="mu-btn" style={S.linkBtn} title={t('brief.resumeDismiss')} onClick={onDismissFraming}>✕</button>
+          <button className="mu-btn" style={S.linkBtn} title={t('brief.resumeDismiss')} aria-label={t('brief.resumeDismiss')} onClick={onDismissFraming}>✕</button>
         </div>
       )}
 
@@ -201,7 +201,7 @@ export function DashboardScreen({
                   <span style={S.docIcon}>{(() => { const I = laneIcon(p.lane ?? 'cartridge'); return <I size={14} />; })()}</span>
                   <span style={S.histName}>{p.name}</span>
                   {p.status === 'draft' && <span style={S.soon}>{t('dash.inProgress')}</span>}
-                  <span style={S.histDate}>{p.ts ? new Date(p.ts).toLocaleDateString() : ''}</span>
+                  <span style={S.histDate}>{p.ts ? new Date(p.ts).toLocaleDateString(dateLocale(lang)) : ''}</span>
                   <span style={S.histOpen}>{t(p.status === 'draft' ? 'dash.resume' : 'dash.open')}<span className="mu-go" style={{ display: 'inline-flex', marginLeft: '5px' }}><GForward size={10} /></span></span>
                 </button>
                 {/* Run it without entering the project: cartridge apps open
@@ -211,14 +211,14 @@ export function DashboardScreen({
                     className="mu-btn mu-cta"
                     style={{ ...S.histLaunch, ...(launching === p.path ? { opacity: 0.6, cursor: 'wait' } : {}) }}
                     disabled={!!launching}
-                    title={t('dash.launchTitle', { name: p.name })}
+                    title={t('dash.launchTitle', { name: p.name })} aria-label={t('dash.launchTitle', { name: p.name })}
                     onClick={() => onLaunchApp(p.path as string, p.name)}
                   ><GLaunch size={14} /></button>
                 )}
                 <button
                   className="mu-btn mu-danger"
                   style={S.histDelete}
-                  title={t('dash.deleteTitle', { name: p.name })}
+                  title={t('dash.deleteTitle', { name: p.name })} aria-label={t('dash.deleteTitle', { name: p.name })}
                   onClick={() => onDeleteProject(p)}
                 ><GTrash size={14} /></button>
               </div>
@@ -254,7 +254,7 @@ export function DashboardScreen({
               </div>
             ))}
         {launchMsg && (
-          <p style={{ ...S.soonNote, color: launchOk === false ? '#fca5a5' : '#5ed6a0' }}>
+          <p style={{ ...S.soonNote, color: launchOk === false ? 'var(--mu-err)' : 'var(--mu-ok)' }}>
             {launchOk === false ? '⚠️ ' : '🚀 '}{launchMsg}
           </p>
         )}

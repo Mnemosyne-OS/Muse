@@ -11,6 +11,7 @@
  */
 import {
   fmtUsd, formatCost, memLabelUI, parseCost, parseMemSource, parseGrounding, parseDocImages,
+  renderMsg,
   joinPath, projectPhases, fileIcon, mermaidLiveUrl, buildDocTree, osLabel, downloadUrl, extractHtml, isHostTimeout,
   versionTail,
 } from '../src/appLogic.ts';
@@ -47,11 +48,51 @@ const lang = 'en';
   eq(formatCost(null, t, lang), '', 'formatCost: null (nothing measured) renders as an empty string, never "0"');
   eq(formatCost({ unmeasured: 'local' }, t, lang), 'free', 'formatCost: local-engine "unmeasured" reads as free, via t(), with no fabricated digit');
   eq(formatCost({ unmeasured: 'byok' }, t, lang), 'not measured', 'formatCost: BYOK "unmeasured" renders a distinct message, via t()');
-  eq(fmtUsd(0, 2, lang), '0.00 $', 'fmtUsd: zero renders with the requested decimals');
-  ok(formatCost({ usdMicro: 0 }, t, lang).includes('0.00'), 'formatCost: a measured zero-cost run shows "0.00 $", not blank (blank means "not measured", 0 means "measured, cost nothing")');
-  ok(formatCost({ usdMicro: 500 }, t, lang).startsWith('<'), 'formatCost: under a tenth of a cent (500 micro-USD = $0.0005) shows as "< 0.001 $" rather than rounding to a misleading "0.00 $"');
+  eq(fmtUsd(0, 2, lang), '$0.00', 'fmtUsd: zero renders with the requested decimals');
+  ok(formatCost({ usdMicro: 0 }, t, lang).includes('0.00'), 'formatCost: a measured zero-cost run shows "$0.00", not blank (blank means "not measured", 0 means "measured, cost nothing")');
+  ok(formatCost({ usdMicro: 500 }, t, lang).startsWith('<'), 'formatCost: under a tenth of a cent (500 micro-USD = $0.0005) shows as "< $0.001" rather than rounding to a misleading "$0.00"');
+
+  // The symbol MOVES with the language — appending " $" by hand was right in
+  // French only, and printed "0.00 $" to every English reader. The separator
+  // is a NO-BREAK space (U+00A0), not a plain one: written by hand, a
+  // price could wrap between the amount and its symbol.
+  eq(fmtUsd(1.23, 2, 'en'), '$1.23', 'fmtUsd (en): the symbol leads, dot decimal, no space');
+  eq(fmtUsd(1.23, 2, 'fr'), '1,23\u00a0$', 'fmtUsd (fr): the symbol trails, comma decimal, joined by a no-break space');
+  eq(fmtUsd(1.23, 2, 'es'), '1,23\u00a0$', 'fmtUsd (es): narrowSymbol keeps a plain $, not the "US$" es-ES defaults to');
   eq(formatCost({ usdMicro: 5_000 }, t, lang), fmtUsd(0.005, 3, lang), 'formatCost: under a cent keeps 3 decimals');
   eq(formatCost({ usdMicro: 1_230_000 }, t, lang), fmtUsd(1.23, 2, lang), 'formatCost: a dollar-plus amount keeps 2 decimals');
+}
+
+// -- renderMsg: a status line that survives a language switch ---------------
+// The bug it exists for: `setError(t('err.x'))` froze the SENTENCE. Switch the
+// shell afterwards and the banner kept speaking the old language, because a
+// re-render cannot re-translate a string that is already a string.
+{
+  // An unknown key comes back STAMPED, not echoed. A t() that echoes its
+  // argument makes "was this string translated?" unanswerable — and the raw
+  // host error below is exactly the string that must never reach t().
+  const fake = (dict) => (key, vars) => (dict[key] ?? '[t]' + key)
+    .replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars?.[k] ?? ''));
+  const fr = fake({ 'err.x': 'Erreur : {{n}}', 'err.hint': 'Réessaie.' });
+  const en = fake({ 'err.x': 'Error: {{n}}', 'err.hint': 'Try again.' });
+
+  const stored = { key: 'err.x', vars: { n: 3 } };
+  eq(renderMsg(stored, fr), 'Erreur : 3', 'renderMsg: renders the key with the CURRENT language');
+  eq(renderMsg(stored, en), 'Error: 3', 'renderMsg: the SAME stored value reads differently after a switch — the whole point');
+
+  eq(renderMsg('ENOENT: no such file', en), 'ENOENT: no such file',
+    'renderMsg: a raw string passes through — a host error is not ours to translate');
+  eq(renderMsg([{ key: 'err.x', vars: { n: 1 } }, 'ENOENT'], en), 'Error: 1 ENOENT',
+    'renderMsg: an array joins a translated head to an untranslated tail');
+  eq(renderMsg([{ key: 'err.x', vars: { n: 1 } }, { key: 'err.hint' }], fr), 'Erreur : 1 Réessaie.',
+    'renderMsg: two keys compose without either being frozen');
+
+  // `{msg && …}` guards all over App.tsx depend on the empty case staying falsy.
+  for (const empty of [null, undefined, '', []]) {
+    eq(renderMsg(empty, en), '', `renderMsg: ${JSON.stringify(empty)} renders as nothing, so the banner guard stays falsy`);
+  }
+  eq(renderMsg(['', { key: 'err.hint' }], en), 'Try again.',
+    'renderMsg: an empty part does not leave a leading space');
 }
 
 // ── Memory label / mode passthrough (UI-facing wrapper over handoff's own

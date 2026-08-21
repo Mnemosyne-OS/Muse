@@ -216,11 +216,26 @@ export function memoryScope(mem: MemorySource | undefined): { disableRAG?: boole
   return {};
 }
 
-/** Human label for the chosen memory — the UI translates the two modes. */
+/** The two memory modes that have no vault name to show. `pick` needs none:
+ *  it renders the vaults' own display names, which no language changes. */
+const MEM_STR: Record<PromptLang, { none: string; all: string }> = {
+  en: { none: 'no memory', all: 'my whole memory' },
+  fr: { none: 'aucune mémoire', all: 'toute ma mémoire' },
+  es: { none: 'ninguna memoria', all: 'toda mi memoria' },
+};
+// Word for word `mem.none` / `mem.all` in the locale bundles: the stored label
+// and the live one sit next to each other in the versions list, and two
+// spellings of the same choice read as two different choices.
+
+/** Human label for the chosen memory. The UI has its own translated path
+ *  (`memLabelUI`, backed by the locale bundles) — this one is what gets
+ *  STORED on a version row and read back later, so it follows the language
+ *  too: a French string frozen into an English user's history is a leak that
+ *  no re-render can fix. */
 export function memoryLabel(mem: MemorySource | undefined): string {
   const mode = memoryMode(mem);
-  if (mode === 'none') return 'aucune mémoire';
-  if (mode === 'all') return 'toute ma mémoire';
+  if (mode === 'none') return MEM_STR[_promptLang].none;
+  if (mode === 'all') return MEM_STR[_promptLang].all;
   const names = (mem as { vaults: MemoryVault[] }).vaults.map((v) => v.displayName);
   return names.length <= 2 ? names.join(' + ') : `${names.slice(0, 2).join(' + ')} +${names.length - 2}`;
 }
@@ -316,25 +331,85 @@ export function mergeMcpConfig(existing: string | null, rootKey: 'mcpServers' | 
   return JSON.stringify(root, null, 2) + '\n';
 }
 
+/** CATALOG.md — follows the shell language, same scaffold pattern as
+ *  BRIEF_STR/VERITY_STR. The lane cell keeps its emoji in EVERY language on
+ *  purpose: that emoji is the only part of a row that survives a language
+ *  switch, and it is what lets upsertCatalog re-localize an old row. */
+const CATALOG_STR: Record<PromptLang, {
+  title: string;
+  note: string;
+  cols: [string, string, string, string];
+  lane: Record<Lane, string>;
+}> = {
+  en: {
+    title: '# My apps catalogue — Muse space',
+    note: '> Kept automatically by Muse: every prepared app lands here. This is your dashboard.',
+    cols: ['App', 'Type', 'Created on', 'Folder'],
+    lane: { doc: '📄 document', site: '🌐 site', cartridge: '🧩 app' },
+  },
+  fr: {
+    title: '# Catalogue de mes apps — espace Muse',
+    note: '> Tenu automatiquement par Muse : chaque app préparée s’ajoute ici. C’est ton tableau de bord.',
+    cols: ['App', 'Type', 'Créée le', 'Dossier'],
+    lane: { doc: '📄 document', site: '🌐 site', cartridge: '🧩 app' },
+  },
+  es: {
+    title: '# Catálogo de mis apps — espacio Muse',
+    note: '> Mantenido automáticamente por Muse: cada app preparada se añade aquí. Es tu panel.',
+    cols: ['App', 'Tipo', 'Creada el', 'Carpeta'],
+    lane: { doc: '📄 documento', site: '🌐 sitio', cartridge: '🧩 app' },
+  },
+};
+
+/** Emoji → lane. See CATALOG_STR: this is how a row written in one language
+ *  is re-rendered in another without parsing any word. */
+const CATALOG_LANE_BY_EMOJI: Array<[string, Lane]> = [['📄', 'doc'], ['🌐', 'site'], ['🧩', 'cartridge']];
+
+/** `|---|---|---|---|` — the one line of a markdown table that is the same in
+ *  every language. Detecting on it (instead of on the translated column
+ *  header) is what makes an existing catalogue survive a language switch:
+ *  matching on `| App | Type |` would have missed a Spanish table and silently
+ *  rebuilt the file, dropping every row. */
+const MD_TABLE_SEPARATOR = /^\|(?:\s*:?-{2,}:?\s*\|)+$/;
+
 /** Create or update the space-level CATALOG.md (one row per prepared app,
- *  keyed by the app folder — re-preparing replaces the row, never duplicates). */
+ *  keyed by the app folder — re-preparing replaces the row, never duplicates).
+ *  The header is rewritten in the current language on every call and the data
+ *  rows are carried over, so switching the shell language translates the
+ *  catalogue in place instead of starting a second one. */
 export function upsertCatalog(existing: string | null, e: { name: string; lane: Lane; slug: string; date: string }): string {
-  const LANE_CELL: Record<Lane, string> = { doc: '📄 document', site: '🌐 site', cartridge: '🧩 app' };
-  const row = `| ${e.name.replace(/\|/g, '/')} | ${LANE_CELL[e.lane]} | ${e.date} | ${e.slug}/ |`;
-  const header = [
-    '# Catalogue de mes apps — espace Muse',
-    '',
-    '> Tenu automatiquement par Muse : chaque app préparée s’ajoute ici. C’est ton tableau de bord.',
-    '',
-    '| App | Type | Créée le | Dossier |',
-    '|---|---|---|---|',
-  ].join('\n');
-  if (!existing || !existing.includes('| App | Type |')) return `${header}\n${row}\n`;
-  const lines = existing.replace(/\r\n?/g, '\n').split('\n');
+  const L = CATALOG_STR[_promptLang];
+  const header = [L.title, '', L.note, '', `| ${L.cols.join(' | ')} |`, '|---|---|---|---|'].join('\n');
+  const fresh = `| ${e.name.replace(/\|/g, '/')} | ${L.lane[e.lane]} | ${e.date} | ${e.slug}/ |`;
+
+  /** Re-render a kept row's lane cell in the current language. Anything that
+   *  is not exactly a 4-cell row we wrote is returned untouched — a row we
+   *  cannot read is still a row the user owns. The date is NEVER reformatted:
+   *  it was localized when written and is not parseable back. */
+  const relocalize = (line: string): string => {
+    const cells = line.split('|');
+    if (cells.length !== 6) return line;
+    const hit = CATALOG_LANE_BY_EMOJI.find(([emoji]) => cells[2].includes(emoji));
+    if (!hit) return line;
+    cells[2] = ` ${L.lane[hit[1]]} `;
+    return cells.join('|');
+  };
+
+  const lines = (existing ?? '').replace(/\r\n?/g, '\n').split('\n');
+  const sep = lines.findIndex((l) => MD_TABLE_SEPARATOR.test(l.trim()));
+  if (sep < 0) return `${header}\n${fresh}\n`;
+
+  // A markdown table ends at its first non-row line. Anything past that is
+  // prose the user wrote under it — carried over verbatim, never our business.
+  const tail = lines.slice(sep + 1);
+  const end = tail.findIndex((l) => !l.trim().startsWith('|'));
+  const rows = (end < 0 ? tail : tail.slice(0, end)).map(relocalize);
+  const trailer = end < 0 ? '' : tail.slice(end).join('\n').replace(/^\n+|\n+$/g, '');
+
   const marker = `| ${e.slug}/ |`;
-  const idx = lines.findIndex((l) => l.trim().endsWith(marker));
-  if (idx >= 0) lines[idx] = row; else lines.push(row);
-  return lines.join('\n').replace(/\n+$/, '') + '\n';
+  const idx = rows.findIndex((l) => l.trim().endsWith(marker));
+  if (idx >= 0) rows[idx] = fresh; else rows.push(fresh);
+  return `${header}\n${rows.join('\n')}\n${trailer ? `\n${trailer}\n` : ''}`;
 }
 
 /** ── Design step (doc 64 §7sexies lane site) ─────────────────────────────
@@ -628,7 +703,27 @@ export function buildVerityReport(o: {
  *  report lands as one unreadable paragraph (and Markdown would glue single
  *  newlines anyway). Re-break the text on its own status markers and emit real
  *  bullets, so the log reads as a checklist. Pure + testable. */
-const STATUS_MARKER = /(CORRIGÉ|CORRIGE|IMPOSSIBLE|✅|✓|❌|✗|⚠️|🗣️)\s*(?:—|-|–|:)?\s*/g;
+/** The two status words the repair contract demands back. They are PARSED
+ *  (formatIdeReply → tallyIdeReply), and the report itself is written in the
+ *  user's language — so the words follow it too. Asking a Spanish user's agent
+ *  for "CORRIGÉ" got a reply nothing could read: the round was lost. */
+const STATUS_STR: Record<PromptLang, { fixed: string; impossible: string }> = {
+  en: { fixed: 'FIXED', impossible: 'IMPOSSIBLE' },
+  fr: { fixed: 'CORRIGÉ', impossible: 'IMPOSSIBLE' },
+  es: { fixed: 'CORREGIDO', impossible: 'IMPOSIBLE' },
+};
+
+/** Every spelling we ACCEPT back — deliberately wider than what the prompt
+ *  asks for: an agent answers in the language it feels like, and an unparsed
+ *  reply costs a whole repair round. `CORRIGE` is the accent-less French one
+ *  models produce constantly. Kept case-sensitive on purpose: a lowercase
+ *  "fixed" inside a sentence must not break the line in two. */
+const FIXED_WORDS = ['CORRIGÉ', 'CORRIGE', 'CORREGIDO', 'FIXED'];
+const IMPOSSIBLE_WORDS = ['IMPOSSIBLE', 'IMPOSIBLE'];
+const STATUS_ICONS = ['✅', '✓', '❌', '✗', '⚠️', '🗣️'];
+const STATUS_ALT = [...FIXED_WORDS, ...IMPOSSIBLE_WORDS, ...STATUS_ICONS].join('|');
+const STATUS_MARKER = new RegExp(`(${STATUS_ALT})\\s*(?:—|-|–|:)?\\s*`, 'g');
+const STATUS_LINE = new RegExp(`^(${STATUS_ALT})\\s*(?:—|-|–|:)?\\s*(.*)$`);
 
 export function formatIdeReply(raw: string): string {
   const flat = raw.replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ').trim();
@@ -639,11 +734,15 @@ export function formatIdeReply(raw: string): string {
   for (const line of broken.split('\n')) {
     const t = line.trim();
     if (!t) continue;
-    const m = t.match(/^(CORRIGÉ|CORRIGE|IMPOSSIBLE|✅|✓|❌|✗|⚠️|🗣️)\s*(?:—|-|–|:)?\s*(.*)$/);
+    const m = t.match(STATUS_LINE);
     if (m) {
-      const kw = m[1] === 'CORRIGE' ? 'CORRIGÉ' : m[1];
-      const icon = /CORRIG|✅|✓/.test(kw) ? '✅' : /IMPOSSIBLE|❌|✗/.test(kw) ? '❌' : kw;
-      const label = /CORRIG|IMPOSSIBLE/.test(kw) ? `**${kw}** — ` : '';
+      const S = STATUS_STR[_promptLang];
+      const fixed = FIXED_WORDS.includes(m[1]) || m[1] === '✅' || m[1] === '✓';
+      const impossible = IMPOSSIBLE_WORDS.includes(m[1]) || m[1] === '❌' || m[1] === '✗';
+      const icon = fixed ? '✅' : impossible ? '❌' : m[1];
+      // A word status is re-spelled in the shell language: the journal is
+      // written in it, so an English "FIXED" must not land in a French log.
+      const label = fixed || impossible ? `**${fixed ? S.fixed : S.impossible}** — ` : '';
       out.push(`- ${icon} ${label}${m[2].trim()}`);
     } else {
       out.push(out.length && out[out.length - 1].startsWith('- ') ? `\n${t}` : t);
@@ -758,7 +857,7 @@ ${note.split('\n').map((l) => `> ${l}`).join('\n')}`
 NON-NEGOTIABLE TERMS — repair rounds on this project have already FAILED because the fixes were cosmetic or partial:
 1. Every issue listed is REAL and UNFIXED until you prove otherwise. OPEN each file, READ the flagged line, FIX the root cause. Do not work from memory of what you wrote before.
 2. A repair MODIFIES CODE. Deleting a TODO comment without doing the TODO, renaming "mock"/"fake" to something neutral, or removing the evidence while keeping the fake behavior is FRAUD — the next pass re-reads the files and will catch it.
-3. [feature-missing] / [feature-doubtful] means: wire the REAL feature end to end — real computation, real data, real event handlers actually bound. Not a stub, not a placeholder, not "à venir".
+3. [feature-missing] / [feature-doubtful] means: wire the REAL feature end to end — real computation, real data, real event handlers actually bound. Not a stub, not a placeholder, not a "coming soon".
 4. You may dispute an item as a false positive ONLY by quoting the exact current code on disk that proves it works. No quote = you fix it.
 5. Fix ALL items in this ONE session. Do not stop halfway, do not ask permission item by item.
 6. FORBIDDEN to answer that everything is already fine. The truth pass reads the files on disk: if it flagged the line, the line exists.${noteBlock}
@@ -767,9 +866,9 @@ ISSUES TO FIX (fix only these — no new features, no refactor tourism):
 ${items.join('\n') || '- (none — nothing to do)'}
 
 MANDATORY FINAL REPORT — after re-reading each modified file on disk to confirm the change is saved, give me EXACTLY one line per issue above${note ? ', PLUS one line per point of my own remark (start those with 🗣️), my remark first' : ''}, same order, in plain ${langInEnglish()}, no code dumps:
-- CORRIGÉ — <fichier:ligne> — <ce qui a réellement changé, une phrase>
-- IMPOSSIBLE — <raison honnête, une phrase>
-No third status, no "partiellement". Then end with the exact project folder path.
+- ${STATUS_STR[_promptLang].fixed} — <file:line> — <what actually changed, one sentence>
+- ${STATUS_STR[_promptLang].impossible} — <honest reason, one sentence>
+Write those two status words EXACTLY as spelled above, in capitals — they are parsed, a translated variant is not read. No third status, no "partially". Then end with the exact project folder path.
 
 I will immediately re-run the truth pass on the files. Any issue still detected means this repair FAILED.`;
 }
@@ -1193,7 +1292,7 @@ export function buildDesignTokens(o: {
           return acc;
         }, {}),
         provenance: mix.provenance,
-        trends: { status: 'placeholder', note: 'Espace réservé — scrap Pinterest / tendances / articles à venir.' },
+        trends: { status: 'placeholder', note: 'Reserved slot — Pinterest scraping, trends and articles to come.' },
       },
       null,
       2
@@ -1232,7 +1331,7 @@ export function buildDesignTokens(o: {
             antiPatterns: sys.authoredAntiPatterns ? sys.antiPatterns : [],
           }
         : null,
-      trends: { status: 'placeholder', note: 'Espace réservé — scrap Pinterest / tendances / articles à venir.' },
+      trends: { status: 'placeholder', note: 'Reserved slot — Pinterest scraping, trends and articles to come.' },
     },
     null,
     2
@@ -1396,7 +1495,7 @@ QUALITY BAR — a reader must see a finished document, not a generated draft:
 - Consistent spacing scale (multiples of one base, e.g. 8px). Generous breathing room between sections — a cramped page reads cheap.
 - Cards/boxes ONLY for genuinely parallel items (3 or 4 side by side, equal weight). Never wrap the whole page in boxes, never a box containing a single paragraph.
 - One accent colour used sparingly, for emphasis and rules — not on every heading.
-- Zero emoji unless I asked for them. Zero "Lorem ipsum". Zero "à venir" placeholder section.
+- Zero emoji unless I asked for them. Zero "Lorem ipsum". Zero placeholder section in ANY language ("coming soon", "à venir", "próximamente", "TBD").
 - Print-friendly: include an @media print rule (white background, dark text, no shadows, avoid breaking a section across pages).
 ${FORMAT_DIRECTIVE[o.format ?? 'page']}
 ${o.styleBlock ? `\n${o.styleBlock}\n` : ''}${visualDirective(o)}

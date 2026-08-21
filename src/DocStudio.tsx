@@ -13,7 +13,7 @@
  */
 import { useRef, useState, type CSSProperties } from 'react';
 import { useI18n } from './i18n/useI18n';
-import { S, btn } from './Chrome';
+import { S, btn, useEscape } from './Chrome';
 import { STYLE_PRESETS } from './DesignStudio';
 import {
   assembleDoc, buildDocPlanPrompt, buildDocSectionPrompt, buildDocShellCss,
@@ -87,6 +87,7 @@ export function DocStudio(props: {
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<string | null>(null);
+  useEscape(preview !== null ? () => setPreview(null) : undefined);
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState('');
   /** The resume offer shows only until the human decides — either way. A
@@ -293,7 +294,7 @@ export function DocStudio(props: {
       <div style={{ ...S.dashInner, maxWidth: '860px' }}>
         <header style={S.dashHead}>
           <div style={S.brand}>
-            <button className="mu-btn" style={S.iconBtn} title={t('studio.back')} onClick={props.onBack}>←</button>
+            <button className="mu-btn" style={S.iconBtn} title={t('studio.back')} aria-label={t('studio.back')} onClick={props.onBack}>←</button>
             <span style={{ ...S.brandName, fontSize: '19px' }}>{title.trim() || t('studio.untitled')}</span>
             <span style={S.brandTag}>{t('studio.tag')}</span>
           </div>
@@ -308,7 +309,7 @@ export function DocStudio(props: {
           <div style={SD.resume}>
             <span style={{ flex: 1 }}>{t('studio.resumeBanner', { name: props.savedBuild.name })}</span>
             <button className="mu-btn mu-cta" style={SD.smallBtn} onClick={resume}>{t('studio.resume')}</button>
-            <button className="mu-btn" style={SD.smallBtn} onClick={() => setResumeOffered(false)}>✕</button>
+            <button className="mu-btn" style={SD.smallBtn} aria-label={t('studio.dismissResume')} onClick={() => setResumeOffered(false)}>✕</button>
           </div>
         )}
 
@@ -319,12 +320,12 @@ export function DocStudio(props: {
             <p style={S.sub}>{t('studio.planHint')}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <input
-                style={SD.rowInput} value={title} placeholder={t('studio.titlePh')}
+                style={SD.rowInput} value={title} placeholder={t('studio.titlePh')} aria-label={t('studio.titlePh')}
                 onChange={(e) => setTitle(e.target.value)}
                 onBlur={() => checkpoint(outlineRef.current, blocksRef.current)}
               />
               <input
-                style={{ ...SD.rowInput, fontSize: '12.5px', color: '#c9d6f2' }} value={intent} placeholder={t('studio.intentPh')}
+                style={{ ...SD.rowInput, fontSize: '12.5px', color: 'var(--mu-text-2)' }} value={intent} placeholder={t('studio.intentPh')} aria-label={t('studio.intentPh')}
                 onChange={(e) => setIntent(e.target.value)}
                 onBlur={() => checkpoint(outlineRef.current, blocksRef.current)}
               />
@@ -347,20 +348,20 @@ export function DocStudio(props: {
                       <span style={SD.planNum}>{i + 1}</span>
                       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <input
-                          style={SD.rowInput} value={s.title} placeholder={t('studio.sectionTitle')}
+                          style={SD.rowInput} value={s.title} placeholder={t('studio.sectionTitle')} aria-label={t('studio.sectionTitle')}
                           onChange={(e) => patchSection(i, { title: e.target.value })}
                           onBlur={() => checkpoint(outlineRef.current, blocksRef.current)}
                         />
                         <input
-                          style={{ ...SD.rowInput, fontSize: '12px', color: '#9fb2d6' }} value={s.brief} placeholder={t('studio.sectionBrief')}
+                          style={{ ...SD.rowInput, fontSize: '12px', color: 'var(--mu-text-3)' }} value={s.brief} placeholder={t('studio.sectionBrief')} aria-label={t('studio.sectionBrief')}
                           onChange={(e) => patchSection(i, { brief: e.target.value })}
                           onBlur={() => checkpoint(outlineRef.current, blocksRef.current)}
                         />
                       </div>
                       <div style={SD.rowActions}>
-                        <button className="mu-btn" style={SD.tinyBtn} onClick={() => moveSection(i, -1)}>↑</button>
-                        <button className="mu-btn" style={SD.tinyBtn} onClick={() => moveSection(i, 1)}>↓</button>
-                        <button className="mu-btn mu-danger" style={SD.tinyBtn} onClick={() => removeSection(i)}>✕</button>
+                        <button className="mu-btn" style={SD.tinyBtn} aria-label={t('studio.moveUp')} onClick={() => moveSection(i, -1)}>↑</button>
+                        <button className="mu-btn" style={SD.tinyBtn} aria-label={t('studio.moveDown')} onClick={() => moveSection(i, 1)}>↓</button>
+                        <button className="mu-btn mu-danger" style={SD.tinyBtn} aria-label={t('studio.removeSection')} onClick={() => removeSection(i)}>✕</button>
                       </div>
                     </div>
                   ))}
@@ -397,9 +398,9 @@ export function DocStudio(props: {
                     </span>
                     <span style={SD.blockTitle}>{b.kind === 'gen' ? b.title : ''}</span>
                     <span style={{ flex: 1 }} />
-                    <button className="mu-btn" style={SD.tinyBtn} onClick={() => moveBlock(b.id, -1)}>↑</button>
-                    <button className="mu-btn" style={SD.tinyBtn} onClick={() => moveBlock(b.id, 1)}>↓</button>
-                    <button className="mu-btn mu-danger" style={SD.tinyBtn} onClick={() => removeBlock(b.id)}>✕</button>
+                    <button className="mu-btn" style={SD.tinyBtn} aria-label={t('studio.moveUp')} onClick={() => moveBlock(b.id, -1)}>↑</button>
+                    <button className="mu-btn" style={SD.tinyBtn} aria-label={t('studio.moveDown')} onClick={() => moveBlock(b.id, 1)}>↓</button>
+                    <button className="mu-btn mu-danger" style={SD.tinyBtn} aria-label={t('studio.removeBlock')} onClick={() => removeBlock(b.id)}>✕</button>
                   </div>
 
                   {b.kind === 'gen' && (
@@ -417,7 +418,7 @@ export function DocStudio(props: {
                         </button>
                         <input
                           style={{ ...SD.rowInput, flex: 1, minWidth: '160px', fontSize: '12px' }}
-                          placeholder={t('studio.remarkPh')}
+                          placeholder={t('studio.remarkPh')} aria-label={t('studio.remarkPh')}
                           value={remarks[b.id] ?? ''}
                           onChange={(e) => setRemarks((m) => ({ ...m, [b.id]: e.target.value }))}
                         />
@@ -429,7 +430,7 @@ export function DocStudio(props: {
                     <textarea
                       style={SD.textarea}
                       rows={5}
-                      placeholder={t('studio.textPh')}
+                      placeholder={t('studio.textPh')} aria-label={t('studio.textPh')}
                       value={b.text ?? ''}
                       onChange={(e) => patchBlock(b.id, { text: e.target.value })}
                       onBlur={() => checkpoint(outlineRef.current, blocksRef.current)}
@@ -457,7 +458,7 @@ export function DocStudio(props: {
                         </div>
                         <input
                           style={{ ...SD.rowInput, fontSize: '12px' }}
-                          placeholder={t('studio.captionPh')}
+                          placeholder={t('studio.captionPh')} aria-label={t('studio.captionPh')}
                           value={b.caption ?? ''}
                           onChange={(e) => patchBlock(b.id, { caption: e.target.value })}
                           onBlur={() => checkpoint(outlineRef.current, blocksRef.current)}
@@ -492,9 +493,9 @@ export function DocStudio(props: {
         {/* ── Preview overlay ── */}
         {preview !== null && (
           <div style={S.overlay} onClick={() => setPreview(null)}>
-            <div style={{ ...S.modal, maxWidth: '900px', height: '86vh', padding: '12px', alignItems: 'stretch' }} onClick={(e) => e.stopPropagation()}>
+            <div role="dialog" aria-modal="true" aria-label={t('studio.preview')} style={{ ...S.modal, maxWidth: '900px', height: '86vh', padding: '12px', alignItems: 'stretch' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="mu-btn" style={SD.tinyBtn} onClick={() => setPreview(null)}>✕</button>
+                <button className="mu-btn" style={SD.tinyBtn} aria-label={t('common.closeLabel')} onClick={() => setPreview(null)}>✕</button>
               </div>
               <iframe sandbox="" srcDoc={preview} style={{ flex: 1, border: 'none', borderRadius: '10px', background: '#fff' }} title={t('studio.preview')} />
             </div>
@@ -506,23 +507,23 @@ export function DocStudio(props: {
 }
 
 const SD: Record<string, CSSProperties> = {
-  panel: { display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: 'clamp(14px, 3vw, 22px)', background: 'rgba(255,255,255,0.02)' },
-  h2: { fontSize: '17px', fontWeight: 700, margin: 0, color: '#eaf2ff' },
-  chip: { fontSize: '11px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.03)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  chipOn: { border: '1px solid rgba(59,130,246,0.7)', background: 'rgba(59,130,246,0.16)', color: '#cfe4ff' },
-  ghostBtn: { fontSize: '12.5px', fontWeight: 600, padding: '8px 13px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.03)', color: '#c9d6f2', cursor: 'pointer', fontFamily: 'inherit' },
-  smallBtn: { fontSize: '12.5px', fontWeight: 700, padding: '8px 13px', borderRadius: '10px', border: '1px solid rgba(59,130,246,0.45)', background: 'rgba(59,130,246,0.14)', color: '#cfe4ff', cursor: 'pointer', fontFamily: 'inherit' },
-  tinyBtn: { fontSize: '12px', padding: '4px 9px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.03)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  planRow: { display: 'flex', gap: '10px', alignItems: 'flex-start', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '10px 12px', background: 'rgba(255,255,255,0.02)' },
-  planNum: { fontSize: '12px', fontWeight: 700, color: '#7dd3fc', width: '20px', textAlign: 'center', flexShrink: 0, paddingTop: '8px' },
-  rowInput: { boxSizing: 'border-box', width: '100%', fontSize: '13.5px', padding: '7px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.25)', color: '#eaf2ff', outline: 'none', fontFamily: 'inherit' },
+  panel: { display: 'flex', flexDirection: 'column', gap: '14px', border: '1px solid var(--mu-line)', borderRadius: '16px', padding: 'clamp(14px, 3vw, 22px)', background: 'var(--mu-wash)' },
+  h2: { fontSize: '17px', fontWeight: 700, margin: 0, color: 'var(--mu-text)' },
+  chip: { fontSize: '11px', fontWeight: 700, padding: '5px 11px', borderRadius: '999px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  chipOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 70%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 16%, transparent)', color: 'var(--mu-text-2)' },
+  ghostBtn: { fontSize: '12.5px', fontWeight: 600, padding: '8px 13px', borderRadius: '10px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash)', color: 'var(--mu-text-2)', cursor: 'pointer', fontFamily: 'inherit' },
+  smallBtn: { fontSize: '12.5px', fontWeight: 700, padding: '8px 13px', borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--mu-accent) 45%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 14%, transparent)', color: 'var(--mu-text-2)', cursor: 'pointer', fontFamily: 'inherit' },
+  tinyBtn: { fontSize: '12px', padding: '4px 9px', borderRadius: '8px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  planRow: { display: 'flex', gap: '10px', alignItems: 'flex-start', border: '1px solid var(--mu-wash-2)', borderRadius: '12px', padding: '10px 12px', background: 'var(--mu-wash)' },
+  planNum: { fontSize: '12px', fontWeight: 700, color: 'var(--mu-link)', width: '20px', textAlign: 'center', flexShrink: 0, paddingTop: '8px' },
+  rowInput: { boxSizing: 'border-box', width: '100%', fontSize: '13.5px', padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--mu-line)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none', fontFamily: 'inherit' },
   rowActions: { display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 },
-  blockCard: { display: 'flex', flexDirection: 'column', gap: '9px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px 14px', background: 'rgba(255,255,255,0.02)' },
+  blockCard: { display: 'flex', flexDirection: 'column', gap: '9px', border: '1px solid var(--mu-line)', borderRadius: '12px', padding: '12px 14px', background: 'var(--mu-wash)' },
   blockHead: { display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 },
-  blockKind: { fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7dd3fc', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '999px', padding: '2px 8px', flexShrink: 0 },
-  blockTitle: { fontSize: '13.5px', fontWeight: 600, color: '#eaf2ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  excerpt: { fontSize: '12.5px', lineHeight: 1.55, color: '#9fb2d6', margin: 0 },
-  textarea: { boxSizing: 'border-box', width: '100%', fontSize: '13.5px', lineHeight: 1.6, padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.25)', color: '#eaf2ff', outline: 'none', fontFamily: 'inherit', resize: 'vertical' },
-  err: { fontSize: '12.5px', color: '#fca5a5' },
-  resume: { display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid rgba(94,214,160,0.35)', background: 'rgba(94,214,160,0.06)', borderRadius: '12px', padding: '10px 14px', fontSize: '13px', color: '#dbe7ff' },
+  blockKind: { fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--mu-link)', background: 'color-mix(in srgb, var(--mu-accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-accent) 30%, transparent)', borderRadius: '999px', padding: '2px 8px', flexShrink: 0 },
+  blockTitle: { fontSize: '13.5px', fontWeight: 600, color: 'var(--mu-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  excerpt: { fontSize: '12.5px', lineHeight: 1.55, color: 'var(--mu-text-3)', margin: 0 },
+  textarea: { boxSizing: 'border-box', width: '100%', fontSize: '13.5px', lineHeight: 1.6, padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--mu-line)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none', fontFamily: 'inherit', resize: 'vertical' },
+  err: { fontSize: '12.5px', color: 'var(--mu-err)' },
+  resume: { display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid color-mix(in srgb, var(--mu-ok) 35%, transparent)', background: 'color-mix(in srgb, var(--mu-ok) 6%, transparent)', borderRadius: '12px', padding: '10px 14px', fontSize: '13px', color: 'var(--mu-text-2)' },
 };

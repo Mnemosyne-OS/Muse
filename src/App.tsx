@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { MnemoCartridgeSDK } from './sdk/mnemo-sdk';
 import { Markdown } from './Markdown';
 import {
   buildDocTree, copyText, extractHtml, isHostTimeout,
   joinPath, memLabelUI, mermaidLiveUrl, parseCost, parseDocImages, parseGrounding, parseMemSource,
   type DocEntry, type DocVersion, type GenCost, type Grounding, type DocImage, type Installable, type Project,
+  renderMsg, type Localized,
 } from './appLogic';
-import { setPromptLanguage, languageSystemPrompt, appendVerityLog, buildAppSpec, buildArtifactPrompt, buildBrief, buildDesignTokens, buildOdSystem, inlineOdStylesheet, buildDocPlanPrompt, buildDocRenderPrompt, buildDocStyleBlock, buildDocDesignBlock, resolveDesignMix, buildFramingPrompt, buildHandoffPrompt, buildVerityFixPrompt, buildVerityPrompt, buildVerityReport, isImageFile, memoryLabel, memoryMode, memoryScope, orderVaultsForDisplay, prettyVaultName, replaceImagePlaceholders, homeFromPath, odScheme, OD_CATALOG_ID, OD_CATALOG_URL, OD_SYSTEMS_DIR, OD_EXPECTED_SYSTEMS, OD_PAGE_FILES, MCP_TARGETS, mergeMcpConfig, parseFramingReply, parseLibraryIndex, parseVerityReply, runVerityHeuristics, slugify, upsertCatalog, upsertLibrary, type ArtifactKind, type ChatMsg, type DocFormat, type FramingBrief, type Harmony, type Lane, type McpIde, type MemorySource, type OdSystem, type DesignMix, type DesignRole, type FontRole, EMPTY_MIX, type RefLibrary, type VerityAlert } from './handoff';
+import { setPromptLanguage, languageSystemPrompt, buildAppSpec, buildArtifactPrompt, buildBrief, buildDesignTokens, buildDocPlanPrompt, buildDocRenderPrompt, buildDocStyleBlock, buildDocDesignBlock, resolveDesignMix, buildFramingPrompt, buildHandoffPrompt, buildVerityFixPrompt, isImageFile, memoryLabel, memoryMode, memoryScope, orderVaultsForDisplay, prettyVaultName, replaceImagePlaceholders, homeFromPath, odScheme, OD_CATALOG_ID, OD_CATALOG_URL, OD_SYSTEMS_DIR, OD_EXPECTED_SYSTEMS, MCP_TARGETS, mergeMcpConfig, parseFramingReply, parseLibraryIndex, slugify, upsertCatalog, upsertLibrary, type ArtifactKind, type ChatMsg, type DocFormat, type FramingBrief, type Harmony, type Lane, type McpIde, type MemorySource, type OdSystem, type DesignMix, type DesignRole, type FontRole, EMPTY_MIX, type RefLibrary } from './handoff';
 import { DesignStudio, STYLE_PRESETS } from './DesignStudio';
 import { TruthStudio } from './TruthStudio';
 import { DocStudio } from './DocStudio';
 import type { DocBuild, DocBlock, DocOutline } from './handoff';
 import { useI18n, dateLocale } from './i18n/useI18n';
 import { GBan, GCheck, GClose, GDoc, GFolder, GGlobe, GLock, GMemory, GPuzzle, GSliders, GSpark, GTrash } from './Glyphs';
-import { Footer, KEYFRAMES, Logo, RepoCard, S, SideLogo } from './Chrome';
+import { Footer, KEYFRAMES, Logo, RepoCard, S, SideLogo, useEscape } from './Chrome';
 import { GeneratingScreen, IntroScreen, NameScreen, ReadyScreen } from './screens/SimpleScreens';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { DocsScreen } from './screens/DocsScreen';
@@ -22,15 +22,10 @@ import { BriefScreen } from './screens/BriefScreen';
 import { HandoffScreen } from './screens/HandoffScreen';
 import { DoneScreen } from './screens/DoneScreen';
 import manifest from '../mnemo-plugin.json';
+import { invokeHost, openExternal, sdk, sleep, waitForClone } from './lib/host';
+import { loadOdSystem, readOdSystems } from './lib/odFiles';
+import { useVerity } from './hooks/useVerity';
 
-// Must match "name" in mnemo-plugin.json — the host keys this cartridge's
-// sandbox vault on it. Renaming later orphans the old vault (no migration path).
-const sdk = new MnemoCartridgeSDK('@mnemosyne-plugins/muse');
-
-// Saved app projects. Host rule: ^[A-Z0-9_]{1,32}$. V2: every entry persists
-// its generated HTML. The spine was rotated (USER_APP -> USER_APP_V2) so the
-// pre-HTML legacy rows — not reopenable, dead by decision — stop counting
-// anywhere: neither in the history list nor in the host vault tile.
 const SPINE = 'USER_APP_V2';
 const META = 'MUSE_META';   // cartridge settings (e.g. onboarding done)
 const FRAMING_SPINE = 'MUSE_FRAMING'; // framing-chat checkpoints (crash-safe resume)
@@ -55,96 +50,6 @@ const INSTALLABLES: Installable[] = [
   { id: 'resto', icon: '🍽️', name: 'MnemoResto', repo: 'https://github.com/Mnemosyne-OS/MnemoResto---MnemosyneOS', dir: 'MnemoResto' },
   { id: 'archipel', icon: '🏝️', name: 'L’Archipel CRM', repo: 'https://github.com/Mnemosyne-OS/MnemoArchipel---Mnemosyne-OS', dir: 'MnemoArchipel' },
 ];
-
-/** Typed pass-through to the host action bridge (actions: doc 52). */
-function invokeHost<T>(action: string, payload: unknown): Promise<T> {
-  const fn = (sdk as unknown as { invoke?: (a: string, p: unknown) => Promise<unknown> }).invoke;
-  if (!fn) return Promise.reject(new Error('SDK invoke unavailable'));
-  return fn.call(sdk, action, payload) as Promise<T>;
-}
-
-/** Folder names under design-systems/ — the catalogue's real inventory on
- *  disk. Shared by the import loop and the "check" button so both answer the
- *  same question the same way: what is actually there, right now. */
-async function readOdSystems(sysDir: string): Promise<string[]> {
-  try {
-    const r = await invokeHost<{ success?: boolean; files?: Array<{ name: string; isDirectory: boolean }> }>(
-      'dialog.readDir', { dirPath: sysDir });
-    if (r?.success && Array.isArray(r.files)) {
-      return r.files.filter((f) => f.isDirectory && !f.name.startsWith('_') && !f.name.startsWith('.')).map((f) => f.name);
-    }
-  } catch { /* not checked out yet */ }
-  return [];
-}
-
-/** Read ONE Open Design system off disk: the three metadata files plus its
- *  reference pages. Module-level because two callers need it — opening a
- *  system in the studio, and restoring the one a saved document was rendered
- *  with. Null when the tokens are unreadable (deleted catalogue, truncated
- *  clone): the caller must say so rather than quietly design something else. */
-async function loadOdSystem(libPath: string, id: string): Promise<OdSystem | null> {
-  const dir = joinPath(joinPath(libPath, OD_SYSTEMS_DIR), id);
-  const read = async (file: string): Promise<string | null> => {
-    try {
-      // Path segments, not a raw join: preview/colors.html must become a real
-      // nested path on Windows too.
-      const filePath = file.split('/').reduce((acc, seg) => joinPath(acc, seg), dir);
-      const r = await invokeHost<{ success?: boolean; content?: string }>('dialog.readFile', { filePath });
-      if (!r?.success || typeof r.content !== 'string') return null;
-      // The biggest components.html in the catalogue is ~56 KB; an order of
-      // magnitude past that is not a reference page.
-      return r.content.length > 400_000 ? null : r.content;
-    } catch { return null; }
-  };
-  const [manifest, tokens, design, css, ...pageContents] = await Promise.all([
-    read('manifest.json'), read('design-tokens.json'), read('DESIGN.md'), read('tokens.css'),
-    ...OD_PAGE_FILES.map(([, file]) => read(file)),
-  ]);
-  // preview/*.html LINK ../tokens.css, which resolves to nothing in a srcDoc
-  // iframe — inline it or the page renders as unstyled text.
-  const pages = Object.fromEntries(
-    OD_PAGE_FILES.map(([key], i) => [key, inlineOdStylesheet(pageContents[i], css)]));
-  return buildOdSystem(id, dir, { manifest, tokens, design, pages });
-}
-
-/** Delays for `ms`. Used by waitForClone's polling loop below. */
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-/** Patience mode after a bridge timeout: the clone keeps running host-side,
- *  so poll the destination until the working tree appears and stabilizes
- *  (shallow clones check files out last → a stable non-.git listing ≈ done).
- *  `onTick` gets the raw file count, not a message: this function is
- *  module-level (no `t()` in scope) — the caller renders the translated
- *  progress line. */
-async function waitForClone(dest: string, onTick?: (count: number) => void): Promise<boolean> {
-  let lastCount = -1;
-  let stable = 0;
-  for (let i = 0; i < 60; i++) { // ~4 minutes max
-    await sleep(4000);
-    let names: string[] = [];
-    try {
-      const r = await invokeHost<{ success?: boolean; files?: { name: string }[] }>('dialog.readDir', { dirPath: dest });
-      if (r?.success && Array.isArray(r.files)) names = r.files.map((f) => f.name);
-    } catch { /* destination not created yet — keep waiting */ }
-    const workCount = names.filter((n) => n !== '.git').length;
-    if (workCount > 0) onTick?.(workCount);
-    if (workCount > 0 && workCount === lastCount) {
-      stable++;
-      if (stable >= 2) return true;
-    } else {
-      stable = 0;
-    }
-    lastCount = workCount;
-  }
-  return false;
-}
-
-/** Open a URL in the OS browser. Sandboxed cartridge iframes block target="_blank",
- *  so external links MUST route through the host shell.openExternal action (doc 52). */
-const openExternal = (url: string) => {
-  (sdk as { invoke?: (a: string, p: unknown) => Promise<unknown> }).invoke?.('shell.openExternal', { url })
-    ?.catch((e: unknown) => console.warn('openExternal failed:', e));
-};
 
 type View = 'intro' | 'onboarding' | 'ready' | 'dashboard' | 'brief' | 'handoff' | 'design' | 'verify' | 'name' | 'docstudio' | 'generating' | 'done' | 'docs';
 type FramingSave = { idea: string; chat: ChatMsg[]; brief: FramingBrief | null; done: boolean; ts: number };
@@ -172,7 +77,7 @@ const LANE_ICON: Record<Lane, (p: { size?: number }) => JSX.Element> = { doc: GD
  *  Vaults) so the memory picker reads like the rest of Mnemosyne OS. */
 const VAULT_TYPES = ['DEV', 'PERSONAL', 'RESEARCH', 'SOCIAL', 'CREATIVE', 'DREAM', 'CUSTOM'];
 const VAULT_TINT: Record<string, string> = {
-  DEV: 'rgba(59,130,246,1)', PERSONAL: 'rgba(52,199,190,1)', RESEARCH: 'rgba(175,82,222,1)',
+  DEV: 'color-mix(in srgb, var(--mu-accent) 100%, transparent)', PERSONAL: 'rgba(52,199,190,1)', RESEARCH: 'rgba(175,82,222,1)',
   SOCIAL: 'rgba(48,209,88,1)', CREATIVE: 'rgba(255,159,10,1)', DREAM: 'rgba(139,92,246,1)',
   CUSTOM: 'rgba(142,142,147,1)',
 };
@@ -215,7 +120,9 @@ export default function App() {
   const [purpose, setPurpose] = useState('');
   const [appHtml, setAppHtml] = useState('');
   const [doneFrom, setDoneFrom] = useState<'new' | 'history'>('new'); // 'new' = just generated (celebratory copy)
-  const [error, setError] = useState('');
+  // The KEY, not the sentence — see Localized in appLogic.ts. `''` stays
+  // the empty value so every `{error && …}` guard reads the same.
+  const [error, setError] = useState<Localized>('');
   // True ONLY when the sandbox boot failed — the shared `error` banner then
   // grows a retry button. Feature errors (design save, artifacts…) must not:
   // retrying THEM through a boot re-run would be a lie.
@@ -408,7 +315,7 @@ export default function App() {
       }
       setArtView({ title: `▶ ${name || t('verity.yourAppFallback')} — v0`, content: html, mermaids: [], kind: 'html' });
     } catch (err) {
-      setError(t('err.previewFailed', { error: (err as Error).message, file: builtEntry.rel }));
+      setError({ key: 'err.previewFailed', vars: { error: (err as Error).message, file: builtEntry.rel } });
     }
   };
 
@@ -494,7 +401,7 @@ export default function App() {
   // MCP preflight: connect the user's IDE to the memory (project-level config)
   const [mcpIde, setMcpIde] = useState<McpIde>('claude-code');
   const [mcpState, setMcpState] = useState<'idle' | 'writing' | 'done' | 'error'>('idle');
-  const [mcpMsg, setMcpMsg] = useState('');
+  const [mcpMsg, setMcpMsg] = useState<Localized>('');
 
   /** 'Configurer pour moi': read the project-level MCP config, merge the
    *  mnemosyne server in (never clobbers other servers), write it back.
@@ -511,7 +418,7 @@ export default function App() {
       let base = appDir;
       if (target.scope === 'home') {
         const home = homeFromPath(folder || appDir);
-        if (!home) throw new Error('profil utilisateur introuvable depuis ton espace');
+        if (!home) throw new Error(t('err.homeUnknown'));
         base = home;
       }
       const parts = target.rel.split('/');
@@ -531,12 +438,12 @@ export default function App() {
       const w = await invokeHost<{ success?: boolean; error?: string }>('dialog.writeFile', { filePath, content: merged });
       if (!w?.success) throw new Error(w?.error || t('err.writeFailed'));
       setMcpState('done');
-      setMcpMsg(t('step.mcpFileWritten', { file: target.rel }));
+      setMcpMsg({ key: 'step.mcpFileWritten', vars: { file: target.rel } });
       if (target.scope === 'project') bumpProjScan();
     } catch (err) {
       console.warn('MCP auto-config failed:', err);
       setMcpState('error');
-      setMcpMsg(`Impossible : ${(err as Error).message}. Passe en manuel (copier le snippet).`);
+      setMcpMsg({ key: 'err.mcpAutoFailed', vars: { error: (err as Error).message } });
     }
   };
 
@@ -553,7 +460,7 @@ export default function App() {
 
   // Import/check state, now serving the Open Design catalogue only.
   const [refState, setRefState] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
-  const [refMsg, setRefMsg] = useState('');
+  const [refMsg, setRefMsg] = useState<Localized>('');
 
   // Personal design libraries — space-level, reusable across projects
   const [libraries, setLibraries] = useState<RefLibrary[]>([]);
@@ -566,7 +473,7 @@ export default function App() {
   const [odPreview, setOdPreview] = useState<OdSystem | null>(null);
   const [designSystem, setDesignSystem] = useState<OdSystem | null>(null);
   const [odState, setOdState] = useState<'idle' | 'loading' | 'error'>('idle');
-  const [odMsg, setOdMsg] = useState('');
+  const [odMsg, setOdMsg] = useState<Localized>('');
   // Import progress. 'fetch' = git is downloading and reports NOTHING back
   // through the bridge, so there is no percentage to show — only a clock.
   // 'checkout' = folders are landing on disk, which is a real count.
@@ -601,135 +508,13 @@ export default function App() {
 
 
 
-  // Truth pass — layer 1 heuristics (free) + layer 2 adversarial agent
-  const [verityTier, setVerityTier] = useState<'eco' | 'standard' | 'max'>('standard');
-  const [verityState, setVerityState] = useState<'idle' | 'scanning' | 'thinking' | 'writing' | 'done' | 'error'>('idle');
-  const [verityMsg, setVerityMsg] = useState('');
-  const [verityHeuristics, setVerityHeuristics] = useState<VerityAlert[]>([]);
-  const [verityAgent, setVerityAgent] = useState<ReturnType<typeof parseVerityReply>>(null);
-  const [ideReply, setIdeReply] = useState('');          // paste box content
-  const [lastIdeReply, setLastIdeReply] = useState('');  // archived claims fed to the truth agent
-  const [userNote, setUserNote] = useState('');          // what the human sees — no heuristic can catch it
-  const [fixRound, setFixRound] = useState(0);           // repair rounds already issued — the prompt escalates
-
-  /** The truth pass: scans project sources, runs the free deterministic
-   *  heuristics (todo-left, silent-catch, lorem…), and — unless the tier is
-   *  'eco' — an adversarial agent that judges each promised feature against
-   *  the code actually on disk. Writes docs/VERITY.md either way. */
-  const runVerity = async (ideReport?: string) => {
-    const busy = verityState === 'scanning' || verityState === 'thinking' || verityState === 'writing';
-    if (!appDir || busy) return;
-    setVerityState('scanning');
-    setVerityMsg(t('verity.readingSources'));
-    setError('');
-    try {
-      const candidates = projFiles.filter((f) => /\.(html?|css|js|jsx|ts|tsx)$/i.test(f.rel) && !f.rel.startsWith('design/')).slice(0, 12);
-      const sources: Array<{ rel: string; content: string }> = [];
-      let budget = 40_000;
-      for (const f of candidates) {
-        if (budget <= 0) break;
-        try {
-          const r = await invokeHost<{ success?: boolean; content?: string }>('dialog.readFile', { filePath: f.path });
-          if (r?.success && typeof r.content === 'string' && r.content.trim()) {
-            const slice = r.content.slice(0, Math.min(6000, budget));
-            sources.push({ rel: f.rel, content: slice });
-            budget -= slice.length;
-          }
-        } catch { /* unreadable — skip */ }
-      }
-      if (!sources.length) throw new Error(t('verity.noSourceFile'));
-      const heur = runVerityHeuristics(sources);
-      setVerityHeuristics(heur);
-      let agent: ReturnType<typeof parseVerityReply> = null;
-      if (verityTier !== 'eco') {
-        setVerityState('thinking');
-        setVerityMsg(t('verity.statusReading', { tier: verityTier === 'max' ? t('tier.max') : t('tier.standard'), n: sources.length }));
-        const claims = ideReport ?? lastIdeReply;
-        const payload: Record<string, unknown> = {
-          prompt: buildVerityPrompt({
-            name, purpose, features: feats, lane,
-            sources: sources.map((s) => ({ name: s.rel, content: s.content })),
-            ideReport: claims || undefined,
-            userNote: userNote.trim() || undefined,
-          }),
-          temperature: 0.2,
-          maxTokens: verityTier === 'max' ? 1800 : 1200,
-          // [MEMORY-SCOPE] Same memory the project was framed on — the truth
-          // pass judges the delivered code against what the project promised.
-          ragQuery: projectRagQuery, ...memScope,
-          // [LANGUAGE] A dedicated system-channel pin — see languageSystemPrompt().
-          systemPrompt: languageSystemPrompt(),
-        };
-        if (verityTier === 'max') payload.forceMode = 'cloud';
-        const res = await invokeHost<{ success?: boolean; error?: string; text?: string; response?: string }>('model.infer', payload);
-        noteGrounding(res);
-        if (res && res.success === false) throw new Error(res.error || t('err.inferRefused'));
-        agent = parseVerityReply(String(res?.text ?? res?.response ?? ''));
-      }
-      setVerityAgent(agent);
-      setVerityState('writing');
-      setVerityMsg(t('verity.writingReport'));
-      const docsDir = joinPath(appDir, 'docs');
-      await invokeHost('dialog.mkdir', { dirPath: docsDir });
-      const report = buildVerityReport({
-        name: name || t('board.untitled'), dateIso: new Date().toLocaleString(dateLocale(lang)), tier: verityTier,
-        heuristics: heur, agent, claimsChecked: !!(agent && (ideReport ?? lastIdeReply)),
-        userNote: userNote.trim() || undefined,
-      });
-      const w = await invokeHost<{ success?: boolean; error?: string }>('dialog.writeFile', { filePath: joinPath(docsDir, 'VERITY.md'), content: report });
-      if (!w?.success) throw new Error(w?.error || t('err.writeFailed'));
-      setVerityState('done');
-      const reds = heur.filter((h) => h.severity === 'alert').length
-        + (agent?.alerts.filter((a) => a.severity === 'alert').length ?? 0)
-        + (agent?.features.filter((f) => f.status === 'missing').length ?? 0);
-      setVerityMsg(reds
-        ? t('verity.redAlerts', { n: reds })
-        : t('verity.noRedAlerts'));
-      bumpProjScan();
-    } catch (err) {
-      console.warn('Verity pass failed:', err);
-      setVerityState('error');
-      setVerityMsg(isHostTimeout(err)
-        ? t('verity.bridgeTimeout')
-        : t('verity.passFailed', { error: (err as Error).message }));
-    }
-  };
-
-  /** Archive the pasted IDE reply into docs/VERITY-LOG.md, then immediately
-   *  re-run the truth pass with those claims so they get cross-checked
-   *  against the code actually on disk (counter-verification). */
-  const saveIdeReply = async () => {
-    const text = ideReply.trim();
-    const note = userNote.trim();
-    const busy = verityState === 'scanning' || verityState === 'thinking' || verityState === 'writing';
-    if (!appDir || (!text && !note) || busy) return;
-    try {
-      const docsDir = joinPath(appDir, 'docs');
-      await invokeHost('dialog.mkdir', { dirPath: docsDir });
-      const logPath = joinPath(docsDir, 'VERITY-LOG.md');
-      let existing: string | null = null;
-      try {
-        const r = await invokeHost<{ success?: boolean; content?: string }>('dialog.readFile', { filePath: logPath });
-        if (r?.success && typeof r.content === 'string') existing = r.content;
-      } catch { /* first entry — the log does not exist yet */ }
-      const w = await invokeHost<{ success?: boolean; error?: string }>('dialog.writeFile', {
-        filePath: logPath,
-        content: appendVerityLog(existing, { dateIso: new Date().toLocaleString(dateLocale(lang)), text, note }),
-      });
-      if (!w?.success) throw new Error(w?.error || t('err.writeFailed'));
-      // The remark stays in the box: it keeps feeding the truth agent and the
-      // fix prompt until the user clears it (the problem is fixed).
-      setLastIdeReply(text);
-      setIdeReply('');
-      bumpProjScan();
-      await runVerity(text);
-    } catch (err) {
-      console.warn('IDE-reply archive failed:', err);
-      setVerityState('error');
-      setVerityMsg(`Archivage impossible : ${(err as Error).message}`);
-    }
-  };
-
+  /* Truth pass — layer 1 heuristics (free) + layer 2 adversarial agent.
+   * Its state and its two entry points live in ./hooks/useVerity.ts; what it
+   * needs from here is listed explicitly rather than reached for. */
+  const verity = useVerity({
+    appDir, projFiles, name, purpose, feats, lane,
+    projectRagQuery, memScope, noteGrounding, bumpProjScan, setError, t, lang,
+  });
 
   /** Import the Open Design catalogue as a library. Unlike a design kit, we do
    *  NOT walk it: `design-systems/` alone holds 4 000+ files, which would eat
@@ -737,9 +522,9 @@ export default function App() {
    *  (one readDir) and read a system's three files only when it is opened. */
   const importOdCatalog = async () => {
     if (refState === 'working') return;
-    if (!folder) { setRefState('error'); setRefMsg(t('ref.needSpace')); return; }
+    if (!folder) { setRefState('error'); setRefMsg({ key: 'ref.needSpace' }); return; }
     setRefState('working');
-    setRefMsg(t('od.cloning'));
+    setRefMsg({ key: 'od.cloning' });
     setOdProgress({ phase: 'fetch', count: 0 });
     try {
       const refsDir = joinPath(folder, 'design-refs');
@@ -753,7 +538,7 @@ export default function App() {
         // ~300 MB of working tree: the bridge reply always times out well
         // before the host's 180s allowance runs out. The clone continues, so
         // this is not an error — the disk below is the source of truth.
-        setRefMsg(t('od.bigRepoWait'));
+        setRefMsg({ key: 'od.bigRepoWait' });
       }
       // Poll design-systems/ itself rather than the clone signal: the repo root
       // stabilizes long before a shallow checkout has written the leaves. Each
@@ -768,7 +553,7 @@ export default function App() {
         systems = names;
         if (names.length) {
           setOdProgress({ phase: 'checkout', count: names.length });
-          setRefMsg(t('od.indexing'));
+          setRefMsg({ key: 'od.indexing' });
         }
         if (names.length && names.length === prev) {
           stable++;
@@ -803,12 +588,12 @@ export default function App() {
       // usable, so it is kept; it just must not claim to be complete.
       const partial = systems.length < Math.round(OD_EXPECTED_SYSTEMS * 0.6);
       setRefMsg(partial
-        ? t('od.importedPartial', { n: systems.length, total: OD_EXPECTED_SYSTEMS })
-        : t('od.imported', { n: systems.length }));
+        ? { key: 'od.importedPartial', vars: { n: systems.length, total: OD_EXPECTED_SYSTEMS } }
+        : { key: 'od.imported', vars: { n: systems.length } });
     } catch (err) {
       console.warn('Open Design catalogue import failed:', err);
       setRefState('error');
-      setRefMsg(t('ref.importFailed', { error: (err as Error).message }));
+      setRefMsg({ key: 'ref.importFailed', vars: { error: (err as Error).message } });
     } finally {
       setOdProgress(null); // the bar must never outlive the work it describes
     }
@@ -821,7 +606,7 @@ export default function App() {
     const lib = libraries.find((l) => l.id === OD_CATALOG_ID);
     if (!lib || refState === 'working') return;
     setRefState('working');
-    setRefMsg(t('od.checking'));
+    setRefMsg({ key: 'od.checking' });
     try {
       const names = (await readOdSystems(joinPath(lib.path, OD_SYSTEMS_DIR))).sort();
       if (!names.length) throw new Error(t('od.noSystems'));
@@ -839,8 +624,8 @@ export default function App() {
       const partial = names.length < Math.round(OD_EXPECTED_SYSTEMS * 0.6);
       setRefState('done');
       setRefMsg(partial
-        ? t('od.checkPartial', { n: names.length, total: OD_EXPECTED_SYSTEMS })
-        : t('od.checkComplete', { n: names.length }));
+        ? { key: 'od.checkPartial', vars: { n: names.length, total: OD_EXPECTED_SYSTEMS } }
+        : { key: 'od.checkComplete', vars: { n: names.length } });
     } catch (err) {
       console.warn('Open Design catalogue check failed:', err);
       setRefState('error');
@@ -924,16 +709,29 @@ export default function App() {
   // Load the systems the saved preference points at. Without this a default
   // restored from the vault would resolve to nothing in a fresh session and
   // silently do nothing — a preference that exists but never applies.
+/** Ids whose load came back null — a system folder deleted or truncated under
+   *  a design that still references it. Without this the effect below never
+   *  settles: it stores a NEW Map that STILL lacks the id, that new identity is
+   *  one of its own dependencies, and it runs again — an endless disk-read loop
+   *  on a catalogue the user broke. Reset when the library index changes, so a
+   *  re-import gets a fresh try instead of being remembered as broken. */
+  const odFailed = useRef<Set<string>>(new Set());
+  useEffect(() => { odFailed.current = new Set(); }, [libraries]);
+
   useEffect(() => {
     const lib = libraries.find((l) => l.id === OD_CATALOG_ID);
     if (!lib) return;
     const ids = [prefMix.base, ...Object.values(prefMix.roles)].filter((x): x is string => !!x);
-    const missing = ids.filter((id) => !odSystems.has(id));
+    const missing = ids.filter((id) => !odSystems.has(id) && !odFailed.current.has(id));
     if (!missing.length) return;
     let cancelled = false;
     void (async () => {
       const loaded = await Promise.all(missing.map((id) => loadOdSystem(lib.path, id)));
       if (cancelled) return;
+      loaded.forEach((s, i) => { if (!s) odFailed.current.add(missing[i]); });
+      // Nothing loaded = nothing to store. Writing a new Map here would only
+      // re-trigger this effect, which is the loop described above.
+      if (!loaded.some(Boolean)) return;
       setOdSystems((prev) => {
         const nx = new Map(prev);
         for (const s of loaded) if (s) nx.set(s.id, s);
@@ -959,7 +757,7 @@ export default function App() {
     } catch (err) {
       console.warn('Design preference save failed:', err);
       setPrefState('error');
-      setError(`${t('pref.saveFailed')} ${(err as Error).message}`);
+      setError([{ key: 'pref.saveFailed' }, (err as Error).message]);
     }
   };
 
@@ -1021,7 +819,7 @@ export default function App() {
     } catch (err) {
       console.warn('Design save failed:', err);
       setDesignState('error');
-      setError(t('err.designFailed', { error: (err as Error).message }));
+      setError({ key: 'err.designFailed', vars: { error: (err as Error).message } });
     }
   };
   const [artView, setArtView] = useState<{ title: string; content: string; mermaids: string[]; kind: 'md' | 'html' } | null>(null);
@@ -1046,7 +844,7 @@ export default function App() {
       const content = fence !== null ? `\`\`\`${fence}\n${res.content}\n\`\`\`` : res.content;
       setArtView({ title, content, mermaids, kind: isHtml ? 'html' : 'md' });
     } catch (err) {
-      setError(t('err.docViewFailed', { error: (err as Error).message }));
+      setError({ key: 'err.docViewFailed', vars: { error: (err as Error).message } });
     }
   };
 
@@ -1058,7 +856,7 @@ export default function App() {
    *  so Muse rotates its OWN slot: links it created (inside the Muse space)
    *  are unlinked first — links the user made elsewhere are never touched.
    */
-  const [launchMsg, setLaunchMsg] = useState('');
+  const [launchMsg, setLaunchMsg] = useState<Localized>('');
   /** Did the last launch SUCCEED? The banner's colour used to be decided by
    *  `launchMsg.startsWith('Ouverture impossible')` — a literal that only ever
    *  matched the French string, so an EN/ES user saw a failed launch rendered
@@ -1080,7 +878,7 @@ export default function App() {
   const launchAppWindow = async (dir: string, label: string) => {
     if (!dir || launching) return;
     setLaunching(dir);
-    setLaunchMsg(t('board.launchWorking', { name: label }));
+    setLaunchMsg({ key: 'board.launchWorking', vars: { name: label } });
     setLaunchOk(null);
     try {
       const manifestPath = joinPath(dir, 'mnemo-plugin.json');
@@ -1131,11 +929,11 @@ export default function App() {
       if (!entry.id) throw new Error(t('board.cartridgeIdMissing'));
       const run = await invokeHost<{ success?: boolean; error?: string }>('plugins.launch', { id: entry.id });
       if (!run?.success) throw new Error(run?.error || t('err.actionRefused'));
-      setLaunchMsg(t('board.launchOk', { name: label }));
+      setLaunchMsg({ key: 'board.launchOk', vars: { name: label } });
       setLaunchOk(true);
     } catch (err) {
       console.warn('launchAppWindow failed:', err);
-      setLaunchMsg(t('board.launchFailed', { error: (err as Error).message }));
+      setLaunchMsg({ key: 'board.launchFailed', vars: { error: (err as Error).message } });
       setLaunchOk(false);
     } finally {
       setLaunching('');
@@ -1219,7 +1017,7 @@ export default function App() {
       if (!r?.success) throw new Error(r?.error || t('err.actionRefused'));
     } catch (err) {
       console.warn('openInOS failed:', err);
-      setError(t('err.openFolderFailed', { error: (err as Error).message }));
+      setError({ key: 'err.openFolderFailed', vars: { error: (err as Error).message } });
     }
   };
 
@@ -1265,7 +1063,7 @@ export default function App() {
     } catch (err) {
       console.warn('Artifact generation failed:', err);
       setArtState((s) => ({ ...s, [art.id]: 'error' }));
-      setError(t('err.artifactFailed', { error: (err as Error).message }));
+      setError({ key: 'err.artifactFailed', vars: { error: (err as Error).message } });
     }
   };
 
@@ -1303,7 +1101,11 @@ export default function App() {
   const [installed, setInstalled] = useState<Record<string, boolean>>({});
   const [cloneTarget, setCloneTarget] = useState<Installable | null>(null);
   const [cloning, setCloning] = useState<'idle' | 'confirm' | 'running' | 'done' | 'error'>('idle');
-  const [cloneMsg, setCloneMsg] = useState('');
+  const [cloneMsg, setCloneMsg] = useState<Localized>('');
+  /** Files seen in the destination while the clone runs past the bridge
+   *  timeout. Null until the first tick: a spinner that never moves for four
+   *  minutes reads as a freeze, and waitForClone already counts them. */
+  const [cloneCount, setCloneCount] = useState<number | null>(null);
 
   // Doc library state (markdown files found in the app space's Neural OS clone)
   const [docs, setDocs] = useState<DocEntry[]>([]);
@@ -1347,7 +1149,7 @@ export default function App() {
       await loadState(vault);
     } catch (err) {
       setBootFailed(true);
-      setError(`${t('err.sandboxUnavailable', { error: (err as Error).message })} ${t('err.sandboxHint')}`);
+      setError([{ key: 'err.sandboxUnavailable', vars: { error: (err as Error).message } }, { key: 'err.sandboxHint' }]);
     }
   };
   useEffect(() => { void bootSandbox(); }, []);
@@ -1843,6 +1645,7 @@ export default function App() {
   const startClone = async (target: Installable) => {
     if (!folder) return;
     setCloning('running');
+    setCloneCount(null);
     try {
       const res = await invokeHost<{ success?: boolean; error?: string }>(
         'app.clone', { repo: target.repo, dest: joinPath(folder, target.dir) });
@@ -1854,26 +1657,26 @@ export default function App() {
         return;
       }
       setCloneMsg(res?.error === 'git-not-installed'
-        ? t('install.gitNotInstalled')
-        : (res?.error || t('install.cloneUnavailable')));
+        ? { key: 'install.gitNotInstalled' }
+        : (res?.error || { key: 'install.cloneUnavailable' }));
       setCloning('error');
     } catch (err) {
       if (isHostTimeout(err)) {
         // Same patience mode as the design reference: the clone is still
         // running host-side — keep the modal on 'running' and poll the dest.
-        const ok = await waitForClone(joinPath(folder, target.dir));
+        const ok = await waitForClone(joinPath(folder, target.dir), setCloneCount);
         if (ok) {
           setInstalled((m) => ({ ...m, [target.id]: true }));
           docsScanKey.current = '';
           setCloning('done');
           return;
         }
-        setCloneMsg(t('install.cloneSlow'));
+        setCloneMsg({ key: 'install.cloneSlow' });
         setCloning('error');
         return;
       }
       console.warn('app.clone failed:', err);
-      setCloneMsg(t('install.cloneUnavailable'));
+      setCloneMsg({ key: 'install.cloneUnavailable' });
       setCloning('error');
     }
   };
@@ -2060,13 +1863,12 @@ export default function App() {
       setDesignSystem(null); setOdPreview(null); setOdState('idle'); setOdMsg('');
       setMcpIde(ide === 'cursor' || ide === 'vscode' || ide === 'antigravity' ? ide : 'claude-code');
       setMcpState('idle'); setMcpMsg(''); setMcpShowSnippet(false);
-      setVerityState('idle'); setVerityMsg(''); setVerityHeuristics([]); setVerityAgent(null);
-      setIdeReply(''); setLastIdeReply(''); setUserNote(''); setFixRound(0);
+      verity.reset();
       saveFraming(purpose, chat, brief, true); // session concluded — banner off
       setSavedFraming(null);
       setView('handoff');
     } catch (err) {
-      setError(t('board.scaffoldFailed', { error: (err as Error).message }));
+      setError({ key: 'board.scaffoldFailed', vars: { error: (err as Error).message } });
     } finally {
       setScaffolding(false);
     }
@@ -2083,6 +1885,16 @@ export default function App() {
   const [delTarget, setDelTarget] = useState<Project | null>(null);
   const [delFiles, setDelFiles] = useState(false); // opt-in: wipe the folder too
   const [deleting, setDeleting] = useState(false);
+
+  /* Escape closes what a backdrop click already closed — grouped here because
+   * every one of these states is in scope by now, and hook order must not
+   * depend on which overlay happens to be open. `undefined` = deliberately not
+   * dismissable: a delete in flight, and a clone the host is still running. */
+  useEscape(delTarget && !deleting ? () => { setDelTarget(null); setDelFiles(false); } : undefined);
+  useEscape(memPanel ? () => setMemPanel(false) : undefined);
+  useEscape(imgPanel ? () => setImgPanel(false) : undefined);
+  useEscape(artView ? () => setArtView(null) : undefined);
+  useEscape(cloning === 'confirm' ? () => { setCloning('idle'); setCloneTarget(null); } : undefined);
 
   const confirmDelete = async () => {
     const p = delTarget;
@@ -2110,7 +1922,7 @@ export default function App() {
       if (vault) await loadState(vault);
     } catch (err) {
       console.warn('Project delete failed:', err);
-      setError(t('err.deleteFailed', { error: (err as Error).message }));
+      setError({ key: 'err.deleteFailed', vars: { error: (err as Error).message } });
       setDelTarget(null);
       setDelFiles(false);
     } finally {
@@ -2135,8 +1947,7 @@ export default function App() {
       setDesignSystem(null); setOdPreview(null); setOdState('idle'); setOdMsg('');
       setMcpIde(ide === 'cursor' || ide === 'vscode' || ide === 'antigravity' ? ide : 'claude-code');
       setMcpState('idle'); setMcpMsg(''); setMcpShowSnippet(false);
-      setVerityState('idle'); setVerityMsg(''); setVerityHeuristics([]); setVerityAgent(null);
-      setIdeReply(''); setLastIdeReply(''); setUserNote(''); setFixRound(0);
+      verity.reset();
       setView('handoff');
     } else {
       // Reopen on the newest take, with every version reachable. Pre-versioning
@@ -2389,7 +2200,7 @@ export default function App() {
       setDoneFrom('new');
       setView('done');
     } catch (err) {
-      setError((err as Error)?.message || t('err.genericFailed'));
+      setError((err as Error)?.message || { key: 'err.genericFailed' });
       setView('name');
     }
   };
@@ -2436,7 +2247,7 @@ export default function App() {
       {/* ── First-run onboarding ────────────────────────────────────────── */}
       {view === 'onboarding' && (
         <OnboardingScreen
-          t={t} error={error} onRetryBoot={bootFailed ? () => { void bootSandbox(); } : undefined}
+          t={t} error={renderMsg(error, t)} onRetryBoot={bootFailed ? () => { void bootSandbox(); } : undefined}
           obStep={obStep} setObStep={setObStep}
           os={os} setOs={setOs} ide={ide} setIde={setIde}
           folder={folder} installed={installed} installables={INSTALLABLES}
@@ -2451,7 +2262,7 @@ export default function App() {
       {/* ── Dashboard (ultra sober) ─────────────────────────────────────── */}
       {view === 'dashboard' && (
         <DashboardScreen
-          t={t} lang={lang} error={error}
+          t={t} lang={lang} error={renderMsg(error, t)}
           onRetryBoot={bootFailed ? () => { void bootSandbox(); } : undefined}
           onOpenDocs={() => setView('docs')}
           onOpenDesignPref={() => { setDesignFor('pref'); setPrefState('idle'); setView('design'); }}
@@ -2467,7 +2278,7 @@ export default function App() {
           docsCount={docsState === 'ok' ? docs.length : '—'}
           projects={projects} onOpenProject={openProject}
           launching={launching} onLaunchApp={(path, name) => { void launchAppWindow(path, name); }}
-          launchMsg={launchMsg} launchOk={launchOk}
+          launchMsg={renderMsg(launchMsg, t)} launchOk={launchOk}
           onDeleteProject={(p) => { setError(''); setDelFiles(false); setDelTarget(p); }}
         />
       )}
@@ -2477,7 +2288,7 @@ export default function App() {
         <BriefScreen
           t={t} groundingBadge={groundingBadge} chat={chat} thinking={thinking} brief={brief}
           chatRef={chatRef} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput}
-          folder={folder} docsState={docsState} error={error} memVault={memVault} installables={INSTALLABLES}
+          folder={folder} docsState={docsState} error={renderMsg(error, t)} memVault={memVault} installables={INSTALLABLES}
           docStyle={docStyle} setDocStyle={pickDocStyle} docTier={docTier} setDocTier={setDocTier}
           docSystem={docSystem} docSystemMissing={docSystemMissing} onPickDocSystem={() => pickDocSystem('brief')}
           docFormat={docFormat} setDocFormat={setDocFormat} docImages={docImages} docSvg={docSvg}
@@ -2499,16 +2310,16 @@ export default function App() {
       {view === 'handoff' && (
         <HandoffScreen
           t={t} lane={lane} name={name} memVault={memVault} laneIcon={(l) => LANE_ICON[l]}
-          launching={launching} launchMsg={launchMsg} launchOk={launchOk} appDir={appDir} projFiles={projFiles} projDisk={projDisk}
-          boardStep={boardStep} setBoardStep={setBoardStep} purpose={purpose} feats={feats} nextSteps={nextSteps} error={error}
+          launching={launching} launchMsg={renderMsg(launchMsg, t)} launchOk={launchOk} appDir={appDir} projFiles={projFiles} projDisk={projDisk}
+          boardStep={boardStep} setBoardStep={setBoardStep} purpose={purpose} feats={feats} nextSteps={nextSteps} error={renderMsg(error, t)}
           designHue={designHue} designHarmony={designHarmony} designStyle={designStyle} designFx={designFx} designState={designState}
           artModel={artModel} setArtModel={setArtModel} artState={artState}
           handoffPrompt={handoffPrompt} copied={copied} setCopied={setCopied}
           showPrompt={showPrompt} setShowPrompt={setShowPrompt} setError={setError}
           mcpConfigured={mcpConfigured} showMcp={showMcp} setShowMcp={setShowMcp}
           mcpIde={mcpIde} setMcpIde={setMcpIde} setMcpState={setMcpState} setMcpMsg={setMcpMsg} setMcpShowSnippet={setMcpShowSnippet}
-          mcpTargets={MCP_TARGETS} mcpState={mcpState} mcpMsg={mcpMsg} mcpShowSnippet={mcpShowSnippet}
-          builtEntry={builtEntry} verityState={verityState} verityHeuristics={verityHeuristics} verityAgent={verityAgent} fixRound={fixRound}
+          mcpTargets={MCP_TARGETS} mcpState={mcpState} mcpMsg={renderMsg(mcpMsg, t)} mcpShowSnippet={mcpShowSnippet}
+          builtEntry={builtEntry} verityState={verity.state} verityHeuristics={verity.heuristics} verityAgent={verity.agent} fixRound={verity.fixRound}
           onLaunchApp={(dir, label) => { void launchAppWindow(dir, label); }}
           onOpenAppDir={openAppDir}
           onBack={() => setView('dashboard')}
@@ -2534,13 +2345,13 @@ export default function App() {
             setDesignFx(f); setDesignState('idle');
           }}
           saveState={designState}
-          error={error}
+          error={renderMsg(error, t)}
           refState={refState}
-          refMsg={refMsg}
+          refMsg={renderMsg(refMsg, t)}
           libraries={libraries}
           odPreview={odPreview}
           odState={odState}
-          odMsg={odMsg}
+          odMsg={renderMsg(odMsg, t)}
           odProgress={odProgress}
           odElapsed={odElapsed}
           designSystem={designFor === 'doc' ? docSystem : designSystem}
@@ -2581,31 +2392,31 @@ export default function App() {
       {view === 'verify' && (
         <TruthStudio
           projectName={name || t('board.untitled')}
-          tier={verityTier}
-          setTier={setVerityTier}
-          state={verityState}
-          msg={verityMsg}
-          error={error}
-          heuristics={verityHeuristics}
-          agent={verityAgent}
-          userNote={userNote}
-          setUserNote={setUserNote}
-          ideReply={ideReply}
-          setIdeReply={setIdeReply}
-          fixRound={fixRound}
+          tier={verity.tier}
+          setTier={verity.setTier}
+          state={verity.state}
+          msg={renderMsg(verity.msg, t)}
+          error={renderMsg(error, t)}
+          heuristics={verity.heuristics}
+          agent={verity.agent}
+          userNote={verity.userNote}
+          setUserNote={verity.setUserNote}
+          ideReply={verity.ideReply}
+          setIdeReply={verity.setIdeReply}
+          fixRound={verity.fixRound}
           canRun={!!builtEntry || projFiles.some((f) => /\.(html?|js|jsx|ts|tsx)$/i.test(f.rel))}
           hasReport={projFiles.some((f) => f.rel === 'docs/VERITY.md')}
           hasLog={projFiles.some((f) => f.rel === 'docs/VERITY-LOG.md')}
-          onRun={() => { void runVerity(); }}
-          onArchive={() => { void saveIdeReply(); }}
+          onRun={() => { void verity.run(); }}
+          onArchive={() => { void verity.saveIdeReply(); }}
           onCopyFix={() => {
             void (async () => {
-              const round = fixRound + 1;
-              const ok = await copyText(buildVerityFixPrompt({ appDir, heuristics: verityHeuristics, agent: verityAgent, round, userNote: userNote.trim() || undefined }));
-              if (ok) setFixRound(round);
-              setVerityMsg(ok
-                ? t('verity.fixPromptCopied', { n: round, noteSuffix: userNote.trim() ? t('verity.fixPromptWithNote') : '' })
-                : t('verity.fixCopyBlocked'));
+              const round = verity.fixRound + 1;
+              const ok = await copyText(buildVerityFixPrompt({ appDir, heuristics: verity.heuristics, agent: verity.agent, round, userNote: verity.userNote.trim() || undefined }));
+              if (ok) verity.setFixRound(round);
+              verity.setMsg(ok
+                ? { key: 'verity.fixPromptCopied', vars: { n: round, noteSuffix: verity.userNote.trim() ? t('verity.fixPromptWithNote') : '' } }
+                : { key: 'verity.fixCopyBlocked' });
             })();
           }}
           onViewReport={() => viewDoc('docs/VERITY.md', joinPath(joinPath(appDir, 'docs'), 'VERITY.md'))}
@@ -2707,7 +2518,7 @@ export default function App() {
       {/* ── Delete a project: say exactly what goes and what stays ──────── */}
       {delTarget && (
         <div style={S.overlay} onClick={() => { if (!deleting) { setDelTarget(null); setDelFiles(false); } }}>
-          <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-label={t('del.title', { name: delTarget.name })} style={S.modal} onClick={(e) => e.stopPropagation()}>
             <h2 style={S.h1small}>{t('del.title', { name: delTarget.name })}</h2>
             {(() => {
               const versions = delTarget.versions?.length ?? 0;
@@ -2721,7 +2532,7 @@ export default function App() {
                   {delTarget.path && (
                     <>
                       <button style={{ ...S.delFilesRow, ...(delFiles ? S.delFilesOn : {}) }} onClick={() => setDelFiles((v) => !v)}>
-                        <span style={{ ...S.memCheck, ...(delFiles ? { border: '1px solid rgba(248,113,113,0.7)', background: 'rgba(248,113,113,0.3)', color: '#fecaca' } : {}) }}>{delFiles && <GCheck size={9} />}</span>
+                        <span style={{ ...S.memCheck, ...(delFiles ? { border: '1px solid color-mix(in srgb, var(--mu-err-bg) 70%, transparent)', background: 'color-mix(in srgb, var(--mu-err-bg) 30%, transparent)', color: 'var(--mu-err)' } : {}) }}>{delFiles && <GCheck size={9} />}</span>
                         <GFolder size={13} />
                         <span style={{ flex: 1, minWidth: 0 }}>
                           {t('del.filesOption')}
@@ -2734,7 +2545,7 @@ export default function App() {
                     </>
                   )}
                   {rows === 0 && (
-                    <p style={{ ...S.sub, color: '#fca5a5' }}>
+                    <p style={{ ...S.sub, color: 'var(--mu-err)' }}>
                       ⚠️ {t('del.noId')}
                     </p>
                   )}
@@ -2757,10 +2568,10 @@ export default function App() {
       {/* ── Memory drawer: pick none / all / a mix of vaults ─────────────── */}
       {memPanel && (
         <div style={S.memOverlay} onClick={() => setMemPanel(false)}>
-          <aside style={S.memDrawer} onClick={(e) => e.stopPropagation()}>
+          <aside role="dialog" aria-modal="true" aria-label={t('mem.label')} style={S.memDrawer} onClick={(e) => e.stopPropagation()}>
             <div style={S.memDrawerHead}>
               <p style={S.memDrawerTitle}><GMemory size={14} />{t('mem.label')}</p>
-              <button className="mu-btn" style={S.linkBtn} onClick={() => setMemPanel(false)}><GClose size={12} /></button>
+              <button className="mu-btn" style={S.linkBtn} aria-label={t('common.closeLabel')} onClick={() => setMemPanel(false)}><GClose size={12} /></button>
             </div>
 
             {/* Three modes on ONE row — the drawer's job is the vault pad. */}
@@ -2815,8 +2626,8 @@ export default function App() {
                               className="mu-btn"
                               style={{
                                 ...S.memTile,
-                                borderColor: on ? VAULT_TINT[type] : 'rgba(255,255,255,0.08)',
-                                background: on ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.02)',
+                                borderColor: on ? VAULT_TINT[type] : 'var(--mu-line)',
+                                background: on ? 'color-mix(in srgb, var(--mu-accent) 12%, transparent)' : 'var(--mu-wash)',
                               }}
                               title={`${v.chronicleCount === null ? t('mem.countUnknown') : t('mem.countKnown', { n: v.chronicleCount })}${v.locked ? ` · ${t('mem.protected')}` : ''}`}
                               onClick={() => setMemVault((cur) => {
@@ -2856,10 +2667,10 @@ export default function App() {
              product furniture, not personal pictures). ────────────────── */}
       {imgPanel && (
         <div style={S.memOverlay} onClick={() => setImgPanel(false)}>
-          <aside style={S.memDrawer} onClick={(e) => e.stopPropagation()}>
+          <aside role="dialog" aria-modal="true" aria-label={t('brief.imagesTitle')} style={S.memDrawer} onClick={(e) => e.stopPropagation()}>
             <div style={S.memDrawerHead}>
               <p style={S.memDrawerTitle}><GFolder size={14} />{t('brief.imagesTitle')}</p>
-              <button className="mu-btn" style={S.linkBtn} onClick={() => setImgPanel(false)}><GClose size={12} /></button>
+              <button className="mu-btn" style={S.linkBtn} aria-label={t('common.closeLabel')} onClick={() => setImgPanel(false)}><GClose size={12} /></button>
             </div>
             <div style={S.memDrawerBody}>
               <div style={S.imgFolderRow}>
@@ -2883,15 +2694,15 @@ export default function App() {
                         className="mu-btn"
                         style={{
                           ...S.memTile,
-                          borderColor: on ? 'rgba(59,130,246,0.6)' : 'rgba(255,255,255,0.08)',
-                          background: on ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.02)',
+                          borderColor: on ? 'color-mix(in srgb, var(--mu-accent) 60%, transparent)' : 'var(--mu-line)',
+                          background: on ? 'color-mix(in srgb, var(--mu-accent) 12%, transparent)' : 'var(--mu-wash)',
                         }}
                         title={img.rel}
                         onClick={() => setDocImages((cur) =>
                           cur.some((x) => x.path === img.path) ? cur.filter((x) => x.path !== img.path) : [...cur, img])}
                       >
                         <span style={S.memTileTop}>
-                          <span style={{ ...S.memTileCheck, ...(on ? { ...S.memCheckOn, borderColor: 'rgba(59,130,246,0.6)' } : {}) }}>{on && <GCheck size={9} />}</span>
+                          <span style={{ ...S.memTileCheck, ...(on ? { ...S.memCheckOn, borderColor: 'color-mix(in srgb, var(--mu-accent) 60%, transparent)' } : {}) }}>{on && <GCheck size={9} />}</span>
                         </span>
                         <span style={S.memTileName}>{img.rel.split('/').pop()}</span>
                       </button>
@@ -2912,7 +2723,7 @@ export default function App() {
                       <span style={S.imgCaptionName} title={img.rel}>{img.rel.split('/').pop()}</span>
                       <input
                         style={S.imgCaptionInput}
-                        placeholder={t('brief.imagesCaptionPlaceholder')}
+                        placeholder={t('brief.imagesCaptionPlaceholder')} aria-label={t('brief.imagesCaptionPlaceholder')}
                         value={img.caption ?? ''}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -2937,16 +2748,16 @@ export default function App() {
       {/* ── In-app doc viewer (artifacts, BRIEF) ────────────────────────── */}
       {artView && (
         <div style={S.overlay} onClick={() => setArtView(null)}>
-          <div style={S.viewerModal} onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-label={artView.title} style={S.viewerModal} onClick={(e) => e.stopPropagation()}>
             <div style={S.viewerHead}>
               <span style={S.viewerTitle}>📄 {artView.title}</span>
               {artView.mermaids.map((code, i) => (
                 <button key={i} className="mu-btn" style={S.installBtn} onClick={() => openExternal(mermaidLiveUrl(code))}>
-                  🧜 Diagramme {artView.mermaids.length > 1 ? i + 1 : ''} · visualiser ↗
+                  {t('doc.diagramView', { n: artView.mermaids.length > 1 ? i + 1 : '' })}
                 </button>
               ))}
               <span style={{ flex: 1 }} />
-              <button className="mu-btn" style={S.linkBtn} onClick={() => setArtView(null)}>✕ fermer</button>
+              <button className="mu-btn" style={S.linkBtn} onClick={() => setArtView(null)}>{t('common.close')}</button>
             </div>
             <div style={S.viewerBody}>
               {artView.kind === 'html'
@@ -2959,12 +2770,12 @@ export default function App() {
 
       {cloning !== 'idle' && cloneTarget && (
         <div style={S.overlay}>
-          <div style={S.modal}>
+          <div role="dialog" aria-modal="true" aria-label={t('install.confirmTitle')} style={S.modal}>
             {cloning === 'confirm' && (
               <>
                 <h2 style={S.h1small}>{t('install.confirmTitle')}</h2>
                 <RepoCard repo={cloneTarget.repo} desc={t(`install.desc.${cloneTarget.id}`)} />
-                <p style={S.sub}>{t('install.repoPre')} <b style={{ color: '#7dd3fc' }}>{t('install.repoBold')}</b> {t('install.repoEnd')}</p>
+                <p style={S.sub}>{t('install.repoPre')} <b style={{ color: 'var(--mu-link)' }}>{t('install.repoBold')}</b> {t('install.repoEnd')}</p>
                 <code style={S.code}>{cloneDest}</code>
                 <button className="mu-btn" style={S.ideLinkPrimary} onClick={() => openExternal(cloneTarget.repo)}>{t('install.verifyGithub')}</button>
                 <button style={S.primary} onClick={() => startClone(cloneTarget)}>{t('install.authorize')}</button>
@@ -2975,6 +2786,7 @@ export default function App() {
               <>
                 <Logo mode="ambient" />
                 <h2 style={S.h1small}>{t('install.installing', { name: cloneTarget.name })}</h2>
+                {cloneCount !== null && <p style={S.sub}>{t('install.cloningInProgress', { n: cloneCount })}</p>}
               </>
             )}
             {cloning === 'done' && (
@@ -2989,14 +2801,14 @@ export default function App() {
               <>
                 <div style={S.hero}>😕</div>
                 <h2 style={S.h1small}>{t('install.notAvailable')}</h2>
-                <p style={S.sub}>{cloneMsg}</p>
+                <p style={S.sub}>{renderMsg(cloneMsg, t)}</p>
                 <p style={S.soonNote}><b>{t('install.manualMode')}</b></p>
                 <code style={S.code}>{`git clone ${cloneTarget.repo} "${cloneDest}"`}</code>
                 <button
                   className="mu-btn" style={S.secondary}
                   onClick={async () => {
                     const ok = await copyText(`git clone ${cloneTarget.repo} "${cloneDest}"`);
-                    if (!ok) setCloneMsg(t('install.copyBlocked'));
+                    if (!ok) setCloneMsg({ key: 'install.copyBlocked' });
                     openExternal(cloneTarget.repo);
                   }}
                 >{t('install.copyOpenGithub')}</button>

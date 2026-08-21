@@ -1,12 +1,12 @@
 {
   "common": {
     "cancel": "Annuler",
-    "close": "fermer",
+    "close": "✕ Fermer",
     "done": "Terminé",
     "back": "Dashboard",
     "openFolder": "Ouvrir le dossier",
-    "copied": "Copié !",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "closeLabel": "Fermer"
   },
   "ready": {
     "title": "Ton espace est prêt"
@@ -57,7 +57,6 @@
     "versions": "{{count}} versions",
     "launchTitle": "Lancer « {{name}} » dans sa fenêtre Mnemosyne",
     "deleteTitle": "Supprimer « {{name}} » de mes projets",
-    "openVersion": "Ouvrir la v{{n}}",
     "docLibrary": "Bibliothèque Mnemosyne"
   },
   "mem": {
@@ -121,7 +120,8 @@
     "saveTitleReady": "Écrire le document dans ton espace Muse",
     "saveTitleNeedSpace": "Termine l’onboarding pour avoir un espace",
     "openPrintTitle": "Ouvrir le fichier (imprimer / PDF depuis là)",
-    "emptyReply": "Le modèle n’a rien renvoyé."
+    "emptyReply": "Le modèle n’a rien renvoyé.",
+    "diagramView": "🧜 Diagramme {{n}} · visualiser ↗"
   },
   "cost": {
     "free": "gratuit (local)",
@@ -163,7 +163,8 @@
       "next": "à venir",
       "soon": "bientôt",
       "optional": "optionnel"
-    }
+    },
+    "unnamedApp": "ton app"
   },
   "truth": {
     "title": "Passe de vérité",
@@ -215,7 +216,6 @@
   "ob": {
     "welcome": "Bienvenue dans Muse",
     "welcomeSub": "On prépare ta machine en 3 étapes, une seule fois. Ensuite tu crées des apps par l’intention.",
-    "configure": "Configurer",
     "fullCreate": "🧩 Je veux créer — documents, sites & apps",
     "docsOnly": "📄 Je veux seulement créer des documents",
     "skip": "Passer l’onboarding",
@@ -296,7 +296,8 @@
     "imagesPickFolderHint": "Choisis le dossier où sont VRAIMENT tes images (Images, Documents…) — ça ne scanne jamais ton espace Muse, qui est plein des icônes et captures des apps installées.",
     "imagesCaptionLabel": "Ce que montre chaque image — aide le modèle à bien la placer",
     "imagesCaptionPlaceholder": "ex. l’équipe le jour du lancement",
-    "svgToggle": "✏️ Schémas dessinés par le modèle (SVG)"
+    "svgToggle": "✏️ Schémas dessinés par le modèle (SVG)",
+    "sendAnswer": "Envoyer ma réponse"
   },
   "tier": {
     "eco": "🌱 Éco · local",
@@ -456,7 +457,12 @@
     "saving": "Enregistrement…",
     "save": "💾 Enregistrer comme version",
     "blockEmpty": "Le modèle a renvoyé une section vide — réessaie.",
-    "newSection": "Nouvelle section"
+    "newSection": "Nouvelle section",
+    "dismissResume": "Ignorer cette reprise",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "removeSection": "Retirer cette section",
+    "removeBlock": "Retirer ce bloc"
   },
   "install": {
     "confirmTitle": "Autoriser l’installation ?",
@@ -488,7 +494,6 @@
     "gitNotInstalled": "Git n’est pas installé sur ta machine. Installe Git, ou utilise le mode manuel (copier la commande).",
     "cloneUnavailable": "Le clonage automatique n’est pas disponible ici. Utilise le mode manuel (copier la commande).",
     "cloneSlow": "Le clone met trop de temps (réseau lent ?). Réessaie dans une minute, ou utilise le mode manuel.",
-    "bigRepoWait": "Gros dépôt — le clone continue en arrière-plan, patience…",
     "cloningInProgress": "Clonage en cours… ({{n}} élément(s))"
   },
   "verity": {
@@ -503,7 +508,6 @@
     "fixPromptCopied": "Ordre de réparation copié (manche {{n}}){{noteSuffix}} — colle-le dans ton IDE, puis recolle sa réponse ici.",
     "fixPromptWithNote": ", ta remarque en tête",
     "fixCopyBlocked": "Copie bloquée — ouvre le rapport et copie les alertes à la main.",
-    "adaptedButtonsPreview": "Aperçu des boutons adaptés",
     "yourAppFallback": "Ton app",
     "billedTitle": "Coût réellement facturé sur {{n}} version(s)",
     "billedUnmeasured": " · {{n}} non mesurée(s) : local ou clé perso"
@@ -581,7 +585,10 @@
     "openFolderFailed": "Ouverture du dossier impossible : {{error}}",
     "artifactFailed": "Artefact impossible : {{error}}",
     "deleteFailed": "Suppression impossible : {{error}}",
-    "retry": "↻ Réessayer"
+    "retry": "↻ Réessayer",
+    "homeUnknown": "profil utilisateur introuvable depuis ton espace",
+    "mcpAutoFailed": "Impossible : {{error}}. Passe en manuel (copier le snippet).",
+    "archiveFailed": "Archivage impossible : {{error}}"
   },
   "mix": {
     "tabSystems": "Systèmes",
@@ -630,5 +637,97 @@
     "unset": "Depuis le système",
     "fromSystem": "— depuis le système de design —",
     "none": "Aucune famille de la liste détectée. C’est la typographie du système de design qui sert."
+  },
+  "style": {
+    "desc": {
+      "mnemosyne": "Violet mnémique · grain · Playfair + Space Grotesk",
+      "dark-luxury": "Noir chaud · shimmer doré · serif italique · transitions lentes",
+      "brutalist": "Raw · typo massive · ombres offset · zéro arrondi",
+      "generative": "Orbs animés · glassmorphism · blobs organiques · particules",
+      "paper-ink": "Blanc cassé · typographie éditoriale · rouge brique · texture papier",
+      "mineral-light": "Sable · pierre · argile · Aesop / Muji · calme organique",
+      "acid-light": "Blanc pur · jaune acide · Bebas Neue · ombres offset · rave culture",
+      "swiss": "Grille mathématique · Helvetica · rouge signal · multiples de 8"
+    }
+  },
+  "fx": {
+    "label": {
+      "glow": "✨ Glow néon",
+      "glass": "🌫 Verre / blur",
+      "gradients": "🌊 Dégradés",
+      "motion": "🎞 Animations douces",
+      "hard-shadows": "⬛ Ombres franches"
+    }
+  },
+  "ds": {
+    "title": "Studio design",
+    "subPre": "{{name}} — tes choix sortent dans",
+    "subPost": ", l’agent IDE les applique tels quels.",
+    "back": "← Retour au projet",
+    "tabStyles": "🖼 Styles",
+    "tabColors": "🎡 Couleurs",
+    "tabFx": "✨ Effets",
+    "tabTrends": "🔮 Tendances",
+    "wheelTitle": "Roue chromatique — clique ta teinte",
+    "harmony": {
+      "analogous": "Analogue",
+      "complementary": "Complémentaire",
+      "triadic": "Triade",
+      "mono": "Mono"
+    },
+    "rolesTitle": "Palette de rôles — concordance calculée",
+    "role": {
+      "base": "Base",
+      "accent": "Accent {{n}}",
+      "background": "Fond",
+      "surface": "Surface",
+      "text": "Texte"
+    },
+    "schemeHint": "Le thème clair/sombre suit le style choisi ({{name}}).",
+    "schemeNone": "aucun → sombre",
+    "useStyle": "Utiliser « {{name}} »",
+    "styleChosen": "✓ Style choisi — cliquer pour retirer",
+    "fxTitle": "Effets voulus — l’agent les respecte (et n’en ajoute pas d’autres)",
+    "trendsTitle": "🔮 Check tendances — bientôt",
+    "trendsBody": "L’espace est réservé : scrap Pinterest, moodboards, tendances du moment, articles design. Tu cocheras ce qui t’inspire et l’agent IDE recevra tes références avec les tokens.",
+    "saving": "⏳ Enregistrement…",
+    "saved": "✓ Design enregistré",
+    "save": "💾 Enregistrer le design",
+    "viewTokens": "👁 voir les tokens",
+    "footStyle": "Style : {{name}}",
+    "footStyleNone": "Style : aucun",
+    "mock": {
+      "mnemosynePre": "La mémoire devient",
+      "mnemosyneAccent": "création",
+      "luxuryEyebrow": "Maison · Collection",
+      "luxuryTitle": "L’élégance sombre",
+      "luxurySignature": "Signature",
+      "brutalistTitle": "Brut—",
+      "brutalistCard": "Zéro arrondi.",
+      "brutalistTicker": "Raw · typo massive · ombres offset",
+      "generativeTitle": "Vivant par défaut",
+      "generativeCta": "Générer →",
+      "generativeTag1": "orbs",
+      "generativeTag2": "blobs",
+      "generativeTag3": "particules",
+      "paperEyebrow": "Édition · N°12",
+      "paperWhen": "ce matin",
+      "paperTitle": "Le journal de bord d’une mémoire",
+      "paperQuote": "« La marge parle »",
+      "paperFoot": "PAPIER — ENCRE",
+      "mineralNav1": "objets",
+      "mineralNav2": "rituels",
+      "mineralNav3": "soin",
+      "mineralTitle": "Calme minéral",
+      "mineralCta": "Découvrir",
+      "mineralAlt": "La matière",
+      "acidEyebrow": "Rave · Culture · 24/7",
+      "acidCta": "Entrer",
+      "acidAlt": "Line-up",
+      "acidTicker": "★ ce soir ★ demain ★ toujours",
+      "swissGrid": "Grille — 8pt",
+      "swissTitle1": "Grille &",
+      "swissTitle2": "raison."
+    }
   }
 }

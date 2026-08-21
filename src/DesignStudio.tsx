@@ -35,65 +35,58 @@ export function detectInstalledFonts(): string[] {
     .map((f) => f.family);
 }
 
-export type StylePreset ={ id: string; name: string; scheme: 'dark' | 'light'; palette: string[]; desc: string; traits: string[]; bn: CSSProperties };
+/** `id` doubles as the i18n key of the one-line description, looked up as
+ *  t(`style.desc.${id}`) at render time — same pattern as install.desc.*.
+ *  `traits` stays English on purpose: it is fed to the IDE agent, not shown. */
+export type StylePreset ={ id: string; name: string; scheme: 'dark' | 'light'; palette: string[]; traits: string[]; bn: CSSProperties };
 
 export const STYLE_PRESETS: StylePreset[] = [
   {
     id: 'mnemosyne', name: 'Mnemosyne OS', scheme: 'dark', palette: ['#05040A', '#7B5EA7', '#C9A6FF', '#C5973A'],
-    desc: 'Violet mnémique · grain · Playfair + Space Grotesk',
     traits: ['deep violet-black background (#05040A)', 'mnemonic violet palette (#7B5EA7, #C9A6FF) + gold touch (#C5973A)', 'film-grain texture overlay', 'Playfair Display for headings, Space Grotesk for UI'],
     bn: { background: 'linear-gradient(135deg, #05040A, #1b1030)', color: 'rgba(201,166,255,0.55)', fontFamily: 'Georgia, "Playfair Display", serif', fontWeight: 700 },
   },
   {
     id: 'dark-luxury', name: 'Dark Luxury', scheme: 'dark', palette: ['#090806', '#C9A84C', '#E8C97A', '#3A2810'],
-    desc: 'Noir chaud · shimmer doré · serif italique · transitions lentes',
     traits: ['warm near-black background (#090806)', 'gold shimmer gradients (#C9A84C→#E8C97A)', 'italic serif display headings', 'slow, luxurious transitions'],
     bn: { background: 'linear-gradient(135deg, #090806, #241c08)', color: 'rgba(232,201,122,0.6)', fontFamily: 'Georgia, serif', fontStyle: 'italic', fontWeight: 700 },
   },
   {
     id: 'brutalist', name: 'Brutalist', scheme: 'light', palette: ['#F5F2EC', '#0A0A0A', '#FF2D00', '#1A1A1A'],
-    desc: 'Raw · typo massive · ombres offset · zéro arrondi',
     traits: ['raw contrast (#F5F2EC vs #0A0A0A) + signal red (#FF2D00)', 'massive UPPERCASE typography', 'hard offset shadows (no blur)', 'zero border-radius, 2px+ solid borders'],
     bn: { background: '#F5F2EC', color: 'rgba(10,10,10,0.4)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' },
   },
   {
     id: 'generative', name: 'Generative', scheme: 'dark', palette: ['#040508', '#6366F1', '#8B5CF6', '#06B6D4'],
-    desc: 'Orbs animés · glassmorphism · blobs organiques · particules',
     traits: ['near-black base (#040508)', 'animated gradient orbs (#6366F1, #8B5CF6, #06B6D4)', 'glassmorphism panels (blur + rgba)', 'organic blobs and floating particles'],
     bn: { background: 'linear-gradient(135deg, #040508, #12123a)', color: 'rgba(139,124,246,0.6)', fontWeight: 700 },
   },
   {
     id: 'paper-ink', name: 'Paper & Ink', scheme: 'light', palette: ['#F8F5EE', '#1A1410', '#C14B28', '#9C9488'],
-    desc: 'Blanc cassé · typographie éditoriale · rouge brique · texture papier',
     traits: ['off-white paper background (#F8F5EE), ink text (#1A1410)', 'editorial serif headlines, ruled separators', 'brick-red accent (#C14B28)', 'paper texture, print-like rhythm, zero glow'],
     bn: { background: '#F8F5EE', color: 'rgba(26,20,16,0.35)', fontFamily: 'Georgia, serif', fontStyle: 'italic', fontWeight: 700 },
   },
   {
     id: 'mineral-light', name: 'Mineral Light', scheme: 'light', palette: ['#F5F0E8', '#2A2218', '#8B4513', '#C8BCA8'],
-    desc: 'Sable · pierre · argile · Aesop / Muji · calme organique',
     traits: ['sand/stone palette (#F5F0E8, #C8BCA8), clay accent (#8B4513)', 'Aesop/Muji organic calm — minimal, warm', 'soft diagonal gradients, tactile rounded cards', 'muted ink text (#2A2218)'],
     bn: { background: 'linear-gradient(145deg, #F5F0E8, #C8BCA8)', color: 'rgba(42,34,24,0.4)', fontWeight: 600 },
   },
   {
     id: 'acid-light', name: 'Acid Light', scheme: 'light', palette: ['#FFFFFF', '#000000', '#FFFF00', '#FF2D00'],
-    desc: 'Blanc pur · jaune acide · Bebas Neue · ombres offset · rave culture',
     traits: ['pure white base, acid-yellow (#FFFF00) blocks, black type, red hits (#FF2D00)', 'condensed poster caps (Bebas Neue-like)', 'hard offset shadows', 'rave-poster energy, flat and loud'],
     bn: { background: 'linear-gradient(135deg, #FFFFFF, #FFFDE0)', color: 'rgba(0,0,0,0.3)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' },
   },
   {
     id: 'swiss', name: 'Swiss Modernism', scheme: 'light', palette: ['#FFFFFF', '#1A1A1A', '#E63329', '#AAAAAA'],
-    desc: 'Grille mathématique · Helvetica · rouge signal · multiples de 8',
     traits: ['mathematical grid — every spacing a multiple of 8px', 'Helvetica/neo-grotesque typography', 'signal red (#E63329) on white/near-black', 'flat: no shadows, no gradients, pure hierarchy'],
     bn: { background: '#FFFFFF', color: 'rgba(26,26,26,0.3)', fontFamily: 'Helvetica, Arial, sans-serif', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.01em' },
   },
 ];
 
-export const FX_OPTIONS: Array<{ id: string; label: string }> = [
-  { id: 'glow', label: '✨ Glow néon' },
-  { id: 'glass', label: '🌫 Verre / blur' },
-  { id: 'gradients', label: '🌊 Dégradés' },
-  { id: 'motion', label: '🎞 Animations douces' },
-  { id: 'hard-shadows', label: '⬛ Ombres franches' },
+/** Ids only — they travel into design-tokens.json and the English agent
+ *  prompt as-is; the visible label is t(`fx.label.${id}`). */
+export const FX_OPTIONS: Array<{ id: string }> = [
+  { id: 'glow' }, { id: 'glass' }, { id: 'gradients' }, { id: 'motion' }, { id: 'hard-shadows' },
 ];
 
 /** LIVE previews — one DISTINCT composition per template (Tony: the pages
@@ -109,6 +102,9 @@ function Bars({ c, ws }: { c: string; ws: string[] }) {
 }
 
 function StyleMock({ p }: { p: StylePreset }) {
+  // Its own hook: the demo copy is on screen, so it follows the shell language
+  // like everything else — a French headline under an English UI is a bug.
+  const { t } = useI18n();
   const box: CSSProperties = { position: 'relative', overflow: 'hidden', borderRadius: '12px', minHeight: '320px', display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.1)' };
 
   switch (p.id) {
@@ -120,7 +116,7 @@ function StyleMock({ p }: { p: StylePreset }) {
           {[[12, 48], [55, 14], [98, 38], [150, 10], [185, 42]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3" fill="#C9A6FF" />)}
         </svg>
         <span style={{ fontSize: '9px', letterSpacing: '0.4em', color: '#C5973A', textTransform: 'uppercase' }}>Mnemosyne OS</span>
-        <span style={{ fontFamily: SERIF, fontSize: '30px', lineHeight: 1.1, maxWidth: '75%' }}>La mémoire devient <i style={{ color: '#C9A6FF' }}>création</i></span>
+        <span style={{ fontFamily: SERIF, fontSize: '30px', lineHeight: 1.1, maxWidth: '75%' }}>{t('ds.mock.mnemosynePre')} <i style={{ color: '#C9A6FF' }}>{t('ds.mock.mnemosyneAccent')}</i></span>
         <Bars c="rgba(232,228,240,0.16)" ws={['58%', '42%']} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: 'auto' }}>
           {[0, 1].map((i) => (
@@ -134,9 +130,9 @@ function StyleMock({ p }: { p: StylePreset }) {
     );
     case 'dark-luxury': return (
       <div style={{ ...box, background: '#090806', color: '#E8E4F0', padding: '20px 22px', alignItems: 'center', textAlign: 'center', gap: '11px' }}>
-        <span style={{ fontSize: '9px', letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase', marginTop: '8px' }}>Maison · Collection</span>
+        <span style={{ fontSize: '9px', letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase', marginTop: '8px' }}>{t('ds.mock.luxuryEyebrow')}</span>
         <span style={{ width: '150px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.6), transparent)' }} />
-        <span style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '34px', lineHeight: 1.05, background: 'linear-gradient(90deg, #8B6914, #E8C97A 45%, #C9A84C)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>L’élégance sombre</span>
+        <span style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '34px', lineHeight: 1.05, background: 'linear-gradient(90deg, #8B6914, #E8C97A 45%, #C9A84C)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t('ds.mock.luxuryTitle')}</span>
         <span style={{ width: '150px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.6), transparent)' }} />
         <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '14px', width: '100%', marginTop: 'auto', textAlign: 'left' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
@@ -144,23 +140,23 @@ function StyleMock({ p }: { p: StylePreset }) {
           </div>
           <div style={{ border: '1px solid rgba(201,168,76,0.4)', padding: '14px', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '20px', color: '#E8C97A' }}>N°1</span>
-            <span style={{ fontSize: '8px', letterSpacing: '0.3em', color: 'rgba(232,228,240,0.5)', textTransform: 'uppercase' }}>Signature</span>
+            <span style={{ fontSize: '8px', letterSpacing: '0.3em', color: 'rgba(232,228,240,0.5)', textTransform: 'uppercase' }}>{t('ds.mock.luxurySignature')}</span>
           </div>
         </div>
       </div>
     );
     case 'brutalist': return (
       <div style={{ ...box, background: '#F5F2EC', color: '#0A0A0A', padding: '16px 18px', gap: '10px', borderRadius: '12px' }}>
-        <span style={{ fontFamily: POSTER, fontSize: '46px', lineHeight: 0.9, textTransform: 'uppercase', letterSpacing: '-0.01em' }}>Brut—</span>
+        <span style={{ fontFamily: POSTER, fontSize: '46px', lineHeight: 0.9, textTransform: 'uppercase', letterSpacing: '-0.01em' }}>{t('ds.mock.brutalistTitle')}</span>
         <div style={{ border: '3px solid #0A0A0A', boxShadow: '7px 7px 0 #0A0A0A', padding: '10px 14px', background: '#F5F2EC', width: 'fit-content' }}>
-          <span style={{ fontFamily: POSTER, fontSize: '21px', textTransform: 'uppercase' }}>Zéro arrondi.</span>
+          <span style={{ fontFamily: POSTER, fontSize: '21px', textTransform: 'uppercase' }}>{t('ds.mock.brutalistCard')}</span>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span style={{ background: '#FF2D00', color: '#F5F2EC', fontFamily: POSTER, fontSize: '13px', padding: '4px 10px', textTransform: 'uppercase' }}>V0</span>
           <Bars c="rgba(10,10,10,0.25)" ws={['110px']} />
         </div>
         <div style={{ marginTop: 'auto', margin: '-16px -18px 0', background: '#0A0A0A', color: '#F5F2EC', fontFamily: POSTER, fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', padding: '8px 18px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          Raw · typo massive · ombres offset · Raw · typo massive · ombres offset ·
+          {t('ds.mock.brutalistTicker')} · {t('ds.mock.brutalistTicker')} ·
         </div>
       </div>
     );
@@ -170,23 +166,23 @@ function StyleMock({ p }: { p: StylePreset }) {
         <div style={{ position: 'absolute', width: '130px', height: '130px', borderRadius: '50%', right: '-25px', bottom: '-25px', background: 'radial-gradient(circle, rgba(6,182,212,0.45), transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', width: '60px', height: '60px', borderRadius: '46% 54% 60% 40%/50% 40% 60% 50%', right: '60px', top: '30px', background: 'rgba(139,92,246,0.3)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '18px', padding: '20px 26px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', backdropFilter: 'blur(6px)', width: '78%' }}>
-          <span style={{ fontSize: '26px', fontWeight: 800, background: 'linear-gradient(135deg, #F0F4FF, #818CF8 50%, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textAlign: 'center', lineHeight: 1.15 }}>Vivant par défaut</span>
+          <span style={{ fontSize: '26px', fontWeight: 800, background: 'linear-gradient(135deg, #F0F4FF, #818CF8 50%, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textAlign: 'center', lineHeight: 1.15 }}>{t('ds.mock.generativeTitle')}</span>
           <Bars c="rgba(240,244,255,0.18)" ws={['70%', '50%']} />
-          <span style={{ padding: '7px 18px', borderRadius: '999px', background: 'linear-gradient(135deg, #6366F1, #06B6D4)', fontSize: '11px', fontWeight: 800 }}>Générer →</span>
+          <span style={{ padding: '7px 18px', borderRadius: '999px', background: 'linear-gradient(135deg, #6366F1, #06B6D4)', fontSize: '11px', fontWeight: 800 }}>{t('ds.mock.generativeCta')}</span>
         </div>
         <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
-          {['orbs', 'blobs', 'particules'].map((t) => <span key={t} style={{ fontSize: '9.5px', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(129,140,248,0.4)', color: 'rgba(240,244,255,0.7)' }}>{t}</span>)}
+          {['generativeTag1', 'generativeTag2', 'generativeTag3'].map((k) => <span key={k} style={{ fontSize: '9.5px', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(129,140,248,0.4)', color: 'rgba(240,244,255,0.7)' }}>{t(`ds.mock.${k}`)}</span>)}
         </div>
       </div>
     );
     case 'paper-ink': return (
       <div style={{ ...box, background: '#F8F5EE', color: '#1A1410', padding: '16px 20px', gap: '10px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: '9px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(26,20,16,0.6)' }}>Édition · N°12</span>
-          <span style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '10px', color: 'rgba(26,20,16,0.55)' }}>ce matin</span>
+          <span style={{ fontSize: '9px', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(26,20,16,0.6)' }}>{t('ds.mock.paperEyebrow')}</span>
+          <span style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '10px', color: 'rgba(26,20,16,0.55)' }}>{t('ds.mock.paperWhen')}</span>
         </div>
         <div style={{ height: '2px', background: '#1A1410' }} />
-        <span style={{ fontFamily: SERIF, fontSize: '27px', lineHeight: 1.12 }}>Le journal de bord d’une mémoire</span>
+        <span style={{ fontFamily: SERIF, fontSize: '27px', lineHeight: 1.12 }}>{t('ds.mock.paperTitle')}</span>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px', marginTop: '4px', flex: 1 }}>
           <div style={{ display: 'flex', gap: '10px' }}>
             <span style={{ fontFamily: SERIF, fontSize: '34px', lineHeight: 1, background: '#1A1410', color: '#F8F5EE', padding: '4px 9px', height: 'fit-content' }}>U</span>
@@ -195,12 +191,12 @@ function StyleMock({ p }: { p: StylePreset }) {
             </div>
           </div>
           <div style={{ borderLeft: '2px solid #C14B28', paddingLeft: '10px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
-            <span style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '12px', color: '#C14B28' }}>« La marge parle »</span>
+            <span style={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '12px', color: '#C14B28' }}>{t('ds.mock.paperQuote')}</span>
             <Bars c="rgba(26,20,16,0.14)" ws={['90%', '70%']} />
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(26,20,16,0.3)', paddingTop: '6px' }}>
-          <span style={{ fontSize: '8.5px', letterSpacing: '0.2em', color: 'rgba(26,20,16,0.5)' }}>PAPIER — ENCRE</span>
+          <span style={{ fontSize: '8.5px', letterSpacing: '0.2em', color: 'rgba(26,20,16,0.5)' }}>{t('ds.mock.paperFoot')}</span>
           <span style={{ fontSize: '8.5px', color: 'rgba(26,20,16,0.5)' }}>p. 3</span>
         </div>
       </div>
@@ -208,29 +204,29 @@ function StyleMock({ p }: { p: StylePreset }) {
     case 'mineral-light': return (
       <div style={{ ...box, background: '#F5F0E8', color: '#2A2218', padding: '18px 22px', alignItems: 'center', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '16px', alignSelf: 'stretch', justifyContent: 'center' }}>
-          {['objets', 'rituels', 'soin'].map((n) => <span key={n} style={{ fontSize: '9px', letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(42,34,24,0.55)' }}>{n}</span>)}
+          {['mineralNav1', 'mineralNav2', 'mineralNav3'].map((k) => <span key={k} style={{ fontSize: '9px', letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(42,34,24,0.55)' }}>{t(`ds.mock.${k}`)}</span>)}
         </div>
         <div style={{ width: '120px', height: '92px', borderRadius: '80px 80px 6px 6px', background: 'linear-gradient(145deg, #EDE6D8, #C8BCA8)', border: '1px solid rgba(42,34,24,0.15)', marginTop: '4px' }} />
-        <span style={{ fontFamily: SERIF, fontSize: '24px', color: '#2A2218' }}>Calme minéral</span>
+        <span style={{ fontFamily: SERIF, fontSize: '24px', color: '#2A2218' }}>{t('ds.mock.mineralTitle')}</span>
         <Bars c="rgba(42,34,24,0.15)" ws={['46%']} />
         <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-          <span style={{ padding: '8px 18px', borderRadius: '999px', background: '#8B4513', color: '#F5F0E8', fontSize: '10.5px', fontWeight: 600 }}>Découvrir</span>
-          <span style={{ padding: '8px 18px', borderRadius: '999px', border: '1px solid rgba(42,34,24,0.3)', fontSize: '10.5px' }}>La matière</span>
+          <span style={{ padding: '8px 18px', borderRadius: '999px', background: '#8B4513', color: '#F5F0E8', fontSize: '10.5px', fontWeight: 600 }}>{t('ds.mock.mineralCta')}</span>
+          <span style={{ padding: '8px 18px', borderRadius: '999px', border: '1px solid rgba(42,34,24,0.3)', fontSize: '10.5px' }}>{t('ds.mock.mineralAlt')}</span>
         </div>
       </div>
     );
     case 'acid-light': return (
       <div style={{ ...box, background: '#FFFFFF', color: '#000000', padding: '16px 18px', gap: '8px' }}>
         <div style={{ position: 'absolute', left: '-12px', top: '38px', width: '75%', height: '58px', background: '#FFFF00', transform: 'rotate(-3deg)', pointerEvents: 'none' }} />
-        <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Rave · Culture · 24/7</span>
+        <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>{t('ds.mock.acidEyebrow')}</span>
         <span style={{ position: 'relative', fontFamily: POSTER, fontSize: '52px', lineHeight: 0.92, textTransform: 'uppercase', letterSpacing: '0.01em' }}>Acid<br />Light</span>
         <div style={{ position: 'absolute', right: '16px', top: '52px', width: '54px', height: '54px', borderRadius: '50%', background: '#FF2D00', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: POSTER, fontSize: '15px', transform: 'rotate(10deg)', border: '2px solid #000' }}>★</div>
         <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-          <span style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000', padding: '5px 12px', fontSize: '10.5px', fontWeight: 800, textTransform: 'uppercase', background: '#fff' }}>Entrer</span>
-          <span style={{ border: '2px solid #000', padding: '5px 12px', fontSize: '10.5px', fontWeight: 800, textTransform: 'uppercase', background: '#FFFF00' }}>Line-up</span>
+          <span style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000', padding: '5px 12px', fontSize: '10.5px', fontWeight: 800, textTransform: 'uppercase', background: '#fff' }}>{t('ds.mock.acidCta')}</span>
+          <span style={{ border: '2px solid #000', padding: '5px 12px', fontSize: '10.5px', fontWeight: 800, textTransform: 'uppercase', background: '#FFFF00' }}>{t('ds.mock.acidAlt')}</span>
         </div>
         <div style={{ marginTop: 'auto', margin: '-16px -18px 0', background: '#000', color: '#FFFF00', fontFamily: POSTER, fontSize: '11px', letterSpacing: '0.18em', textTransform: 'uppercase', padding: '7px 18px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          ★ ce soir ★ demain ★ toujours ★ ce soir ★ demain ★ toujours
+          {t('ds.mock.acidTicker')} {t('ds.mock.acidTicker')}
         </div>
       </div>
     );
@@ -239,9 +235,9 @@ function StyleMock({ p }: { p: StylePreset }) {
         <div style={{ height: '6px', background: '#E63329' }} />
         <div style={{ padding: '14px 18px 10px', display: 'flex', flexDirection: 'column', gap: '8px', fontFamily: GROTESK }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#AAAAAA' }}>
-            <span>Grille — 8pt</span><span>CH · 2026</span>
+            <span>{t('ds.mock.swissGrid')}</span><span>CH · 2026</span>
           </div>
-          <span style={{ fontSize: '38px', fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.03em' }}>Grille &<br />raison.</span>
+          <span style={{ fontSize: '38px', fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.03em' }}>{t('ds.mock.swissTitle1')}<br />{t('ds.mock.swissTitle2')}</span>
           <span style={{ width: '14px', height: '14px', background: '#E63329' }} />
         </div>
         <div style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', padding: '10px 18px 16px', fontFamily: GROTESK }}>
@@ -313,7 +309,7 @@ function OdSystemBrowser(props: {
       <div style={DS.libList}>
         <input
           style={{ ...DS.refInput, minWidth: 0, marginBottom: '6px' }}
-          placeholder={t('od.filter')}
+          placeholder={t('od.filter')} aria-label={t('od.filter')}
           value={props.filter}
           onChange={(e) => props.setFilter(e.target.value)}
         />
@@ -331,7 +327,7 @@ function OdSystemBrowser(props: {
 
       <div style={DS.libDetail}>
         {props.state === 'loading' && <p style={DS.hint}>{t('od.loading')}</p>}
-        {props.state === 'error' && <p style={{ ...DS.hint, color: '#fca5a5' }}>⚠️ {props.msg}</p>}
+        {props.state === 'error' && <p style={{ ...DS.hint, color: 'var(--mu-err)' }}>⚠️ {props.msg}</p>}
         {!sys && props.state === 'idle' && (
           <p style={DS.hint}>{t('od.pickOne', { n: all.length })}</p>
         )}
@@ -511,23 +507,23 @@ export function DesignStudio(props: {
   // Open Design first (Tony): the 151 systems ARE the studio, "Mon design"
   // holds the mix they feed, and the older screens move behind them.
   const TABS: Array<[Tab, string]> = props.mode === 'pref'
-    ? [['ref', `🎛 ${t('mix.tabSystems')}`], ['mine', `🎨 ${t('mix.tabMine')}`], ['colors', '🎡 Couleurs'], ['fx', '✨ Effets']]
+    ? [['ref', `🎛 ${t('mix.tabSystems')}`], ['mine', `🎨 ${t('mix.tabMine')}`], ['colors', t('ds.tabColors')], ['fx', t('ds.tabFx')]]
     : props.mode === 'doc'
     ? [['ref', `🎛 ${t('mix.tabSystems')}`], ['mine', `🎨 ${t('mix.tabMine')}`]]
     : props.lane === 'site'
-      ? [['ref', `🎛 ${t('mix.tabSystems')}`], ['mine', `🎨 ${t('mix.tabMine')}`], ['styles', '🖼 Styles'], ['colors', '🎡 Couleurs'], ['fx', '✨ Effets'], ['trends', '🔮 Tendances']]
-      : [['ref', `🎛 ${t('mix.tabSystems')}`], ['mine', `🎨 ${t('mix.tabMine')}`], ['colors', '🎡 Couleurs'], ['fx', '✨ Effets'], ['trends', '🔮 Tendances']];
+      ? [['ref', `🎛 ${t('mix.tabSystems')}`], ['mine', `🎨 ${t('mix.tabMine')}`], ['styles', t('ds.tabStyles')], ['colors', t('ds.tabColors')], ['fx', t('ds.tabFx')], ['trends', t('ds.tabTrends')]]
+      : [['ref', `🎛 ${t('mix.tabSystems')}`], ['mine', `🎨 ${t('mix.tabMine')}`], ['colors', t('ds.tabColors')], ['fx', t('ds.tabFx')], ['trends', t('ds.tabTrends')]];
 
   return (
     <div style={DS.wrap}>
       <div style={DS.inner}>
         <div style={DS.head}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1 }}>
-            <h1 style={DS.title}>🎨 {props.mode === 'pref' ? t('pref.title') : 'Studio design'}</h1>
-            <p style={DS.sub}>{props.mode === 'pref' ? t('pref.subtitle') : <>{props.projectName} — tes choix sortent dans <b>design-tokens.json</b>, l’agent IDE les applique tels quels.</>}</p>
-            {props.inherited && <p style={{ ...DS.hint, color: '#f0c674' }}>{t('pref.inherited')}</p>}
+            <h1 style={DS.title}>🎨 {props.mode === 'pref' ? t('pref.title') : t('ds.title')}</h1>
+            <p style={DS.sub}>{props.mode === 'pref' ? t('pref.subtitle') : <>{t('ds.subPre', { name: props.projectName })} <b>design-tokens.json</b>{t('ds.subPost')}</>}</p>
+            {props.inherited && <p style={{ ...DS.hint, color: 'var(--mu-warn)' }}>{t('pref.inherited')}</p>}
           </div>
-          <button style={DS.secondary} onClick={props.onBack}>← Retour au projet</button>
+          <button style={DS.secondary} onClick={props.onBack}>{t('ds.back')}</button>
         </div>
 
         <div style={DS.tabRow}>
@@ -548,9 +544,9 @@ export function DesignStudio(props: {
                 const prov = props.resolved.provenance[role];
                 const explicit = props.mix.roles[role];
                 return (
-                  <div key={role} style={{ border: '1px solid rgba(255,255,255,0.09)', borderRadius: '12px', padding: '13px 14px', display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255,255,255,0.02)' }}>
+                  <div key={role} style={{ border: '1px solid var(--mu-line)', borderRadius: '12px', padding: '13px 14px', display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--mu-wash)' }}>
                     <span style={DS.label}>{t(`mix.role.${role}`)}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: prov ? '#eaf2ff' : '#5f6f92' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: prov ? 'var(--mu-text)' : 'var(--mu-text-4)' }}>
                       {prov?.kind === 'system' ? prov.name : prov?.kind === 'manual' ? t('mix.byYou') : t('mix.unset')}
                     </span>
                     <span style={DS.hint}>
@@ -575,9 +571,9 @@ export function DesignStudio(props: {
               })}
               {/* Effects are nobody's system — the card says so instead of
                   letting them look like part of a design system. */}
-              <div style={{ border: '1px dashed rgba(255,255,255,0.14)', borderRadius: '12px', padding: '13px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ border: '1px dashed var(--mu-line-2)', borderRadius: '12px', padding: '13px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <span style={DS.label}>{t('mix.role.effects')}</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: props.fx.size ? '#eaf2ff' : '#5f6f92' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: props.fx.size ? 'var(--mu-text)' : 'var(--mu-text-4)' }}>
                   {props.fx.size ? t('mix.byYou') : t('mix.unset')}
                 </span>
                 <span style={DS.hint}>{t('mix.effectsHint')}</span>
@@ -587,7 +583,7 @@ export function DesignStudio(props: {
                       key={fx.id}
                       style={{ ...DS.chip, ...(props.fx.has(fx.id) ? DS.chipOn : {}) }}
                       onClick={() => { const nx = new Set(props.fx); if (nx.has(fx.id)) nx.delete(fx.id); else nx.add(fx.id); props.setFx(nx); }}
-                    >{fx.label}</button>
+                    >{t(`fx.label.${fx.id}`)}</button>
                   ))}
                 </div>
               </div>
@@ -599,13 +595,13 @@ export function DesignStudio(props: {
               {FONT_ROLES.map((role) => {
                 const chosen = props.mix.fontRoles?.[role];
                 return (
-                  <div key={role} style={{ border: '1px solid rgba(255,255,255,0.09)', borderRadius: '11px', padding: '11px 12px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                  <div key={role} style={{ border: '1px solid var(--mu-line)', borderRadius: '11px', padding: '11px 12px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
                     <span style={DS.label}>{t(`font.role.${role}`)}</span>
                     <span style={{
                       fontFamily: chosen ? fontStack(chosen) : 'inherit',
                       fontSize: role === 'h1' ? '22px' : role === 'h2' ? '18px' : '15px',
                       fontWeight: role.startsWith('h') ? 700 : 400,
-                      color: chosen ? '#eaf2ff' : '#5f6f92',
+                      color: chosen ? 'var(--mu-text)' : 'var(--mu-text-4)',
                       lineHeight: 1.2,
                     }}>{chosen ?? t('font.unset')}</span>
                     <select
@@ -631,11 +627,11 @@ export function DesignStudio(props: {
                 so here is the whole point: a wheel that no longer drives
                 anything, left looking live, is a label pretending to be state. */}
             {props.designSystem && (
-              <p style={{ ...DS.hint, color: '#f0c674' }}>{t('od.wheelOverridden', { name: props.designSystem.name })}</p>
+              <p style={{ ...DS.hint, color: 'var(--mu-warn)' }}>{t('od.wheelOverridden', { name: props.designSystem.name })}</p>
             )}
             <div style={DS.colorsGrid}>
               <div style={DS.col}>
-                <p style={DS.label}>Roue chromatique — clique ta teinte</p>
+                <p style={DS.label}>{t('ds.wheelTitle')}</p>
                 <div
                   style={DS.wheel}
                   onClick={(e) => {
@@ -648,15 +644,15 @@ export function DesignStudio(props: {
                   <span style={{ ...DS.wheelDot, left: `${50 + 42 * Math.sin(props.hue * Math.PI / 180)}%`, top: `${50 - 42 * Math.cos(props.hue * Math.PI / 180)}%`, background: hslToHex(props.hue, 72, 56) }} />
                 </div>
                 <div style={DS.chipRow}>
-                  {([['analogous', 'Analogue'], ['complementary', 'Complémentaire'], ['triadic', 'Triade'], ['mono', 'Mono']] as Array<[Harmony, string]>).map(([h, label]) => (
-                    <button key={h} style={{ ...DS.chip, ...(props.harmony === h ? DS.chipOn : {}) }} onClick={() => props.setHarmony(h)}>{label}</button>
+                  {(['analogous', 'complementary', 'triadic', 'mono'] as Harmony[]).map((h) => (
+                    <button key={h} style={{ ...DS.chip, ...(props.harmony === h ? DS.chipOn : {}) }} onClick={() => props.setHarmony(h)}>{t(`ds.harmony.${h}`)}</button>
                   ))}
                 </div>
               </div>
               <div style={DS.col}>
-                <p style={DS.label}>Palette de rôles — concordance calculée</p>
+                <p style={DS.label}>{t('ds.rolesTitle')}</p>
                 <div style={DS.roleList}>
-                  {([['Base', pal.base], ...pal.accents.map((a, i) => [`Accent ${i + 1}`, a] as [string, string]), ['Fond', pal.background], ['Surface', pal.surface], ['Texte', pal.text]] as Array<[string, string]>).map(([label, c]) => (
+                  {([[t('ds.role.base'), pal.base], ...pal.accents.map((a, i) => [t('ds.role.accent', { n: i + 1 }), a] as [string, string]), [t('ds.role.background'), pal.background], [t('ds.role.surface'), pal.surface], [t('ds.role.text'), pal.text]] as Array<[string, string]>).map(([label, c]) => (
                     <div key={label} style={DS.roleRow}>
                       <span style={{ ...DS.roleSw, background: c }} />
                       <span style={DS.roleName}>{label}</span>
@@ -664,7 +660,7 @@ export function DesignStudio(props: {
                     </div>
                   ))}
                 </div>
-                <p style={DS.hint}>Le thème clair/sombre suit le style choisi ({preset ? preset.name : 'aucun → sombre'}).</p>
+                <p style={DS.hint}>{t('ds.schemeHint', { name: preset ? preset.name : t('ds.schemeNone') })}</p>
               </div>
             </div>
           </div>
@@ -690,12 +686,12 @@ export function DesignStudio(props: {
               </div>
               <div style={DS.previewCol}>
                 <StyleMock p={previewPreset} />
-                <p style={DS.previewDesc}>{previewPreset.desc}</p>
+                <p style={DS.previewDesc}>{t(`style.desc.${previewPreset.id}`)}</p>
                 <button
                   style={{ ...DS.primary, ...(props.styleId === previewPreset.id ? DS.primaryOk : {}) }}
                   onClick={() => props.setStyleId(props.styleId === previewPreset.id ? null : previewPreset.id)}
                 >
-                  {props.styleId === previewPreset.id ? '✓ Style choisi — cliquer pour retirer' : `Utiliser « ${previewPreset.name} »`}
+                  {props.styleId === previewPreset.id ? t('ds.styleChosen') : t('ds.useStyle', { name: previewPreset.name })}
                 </button>
               </div>
             </div>
@@ -704,14 +700,14 @@ export function DesignStudio(props: {
 
         {tab === 'fx' && (
           <div style={DS.panel}>
-            <p style={DS.label}>Effets voulus — l’agent les respecte (et n’en ajoute pas d’autres)</p>
+            <p style={DS.label}>{t('ds.fxTitle')}</p>
             <div style={DS.chipRow}>
               {FX_OPTIONS.map((fx) => (
                 <button
                   key={fx.id}
                   style={{ ...DS.chip, ...(props.fx.has(fx.id) ? DS.chipOn : {}) }}
                   onClick={() => { const nx = new Set(props.fx); if (nx.has(fx.id)) nx.delete(fx.id); else nx.add(fx.id); props.setFx(nx); }}
-                >{fx.label}</button>
+                >{t(`fx.label.${fx.id}`)}</button>
               ))}
             </div>
           </div>
@@ -738,10 +734,10 @@ export function DesignStudio(props: {
                   const pct = odPercent(props.odProgress.count, props.odProgress.phase === 'checkout' ? OD_EXPECTED_SYSTEMS : null);
                   return (
                     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '7px' }}>
-                      <div style={{ position: 'relative', height: '6px', borderRadius: '999px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                      <div style={{ position: 'relative', height: '6px', borderRadius: '999px', background: 'var(--mu-line)', overflow: 'hidden' }}>
                         {pct !== null
-                          ? <span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: '999px', background: 'linear-gradient(90deg, #3b82f6, #7dd3fc)', transition: 'width .45s ease' }} />
-                          : <span className="mu-indet" style={{ background: 'linear-gradient(90deg, transparent, rgba(125,211,252,0.8), transparent)' }} />}
+                          ? <span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: '999px', background: 'linear-gradient(90deg, var(--mu-accent), var(--mu-link))', transition: 'width .45s ease' }} />
+                          : <span className="mu-indet" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--mu-link) 80%, transparent), transparent)' }} />}
                       </div>
                       <p style={DS.hint}>
                         {pct !== null
@@ -755,7 +751,7 @@ export function DesignStudio(props: {
               </div>
             )}
             {props.refMsg && (
-              <p style={{ ...DS.hint, color: props.refState === 'error' ? '#fca5a5' : props.refState === 'done' ? '#5ed6a0' : '#9fb2d6' }}>
+              <p style={{ ...DS.hint, color: props.refState === 'error' ? 'var(--mu-err)' : props.refState === 'done' ? 'var(--mu-ok)' : 'var(--mu-text-3)' }}>
                 {props.refState === 'done' ? '✅ ' : props.refState === 'error' ? '⚠️ ' : ''}{props.refMsg}
               </p>
             )}
@@ -785,11 +781,8 @@ export function DesignStudio(props: {
         {tab === 'trends' && (
           <div style={DS.panel}>
             <div style={DS.trendBox}>
-              <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#c9b8ff' }}>🔮 Check tendances — bientôt</p>
-              <p style={{ margin: 0, fontSize: '13px', color: '#9fb2d6', lineHeight: 1.6 }}>
-                L’espace est réservé : scrap Pinterest, moodboards, tendances du moment, articles design.
-                Tu cocheras ce qui t’inspire et l’agent IDE recevra tes références avec les tokens.
-              </p>
+              <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#c9b8ff' }}>{t('ds.trendsTitle')}</p>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--mu-text-3)', lineHeight: 1.6 }}>{t('ds.trendsBody')}</p>
             </div>
           </div>
         )}
@@ -817,12 +810,12 @@ export function DesignStudio(props: {
         ) : (
         <div style={DS.footRow}>
           <button style={DS.primary} disabled={props.saveState === 'saving'} onClick={props.onSave}>
-            {props.saveState === 'saving' ? '⏳ Enregistrement…' : props.saveState === 'done' ? '✓ Design enregistré' : '💾 Enregistrer le design'}
+            {props.saveState === 'saving' ? t('ds.saving') : props.saveState === 'done' ? t('ds.saved') : t('ds.save')}
           </button>
-          {props.saveState === 'done' && <button style={DS.link} onClick={props.onViewTokens}>👁 voir les tokens</button>}
+          {props.saveState === 'done' && <button style={DS.link} onClick={props.onViewTokens}>{t('ds.viewTokens')}</button>}
           <span style={{ flex: 1 }} />
           <span style={DS.hint}>
-            {preset ? `Style : ${preset.name}` : 'Style : aucun'} · Teinte {props.hue}° · {props.fx.size} effet{props.fx.size > 1 ? 's' : ''}
+            {preset ? t('ds.footStyle', { name: preset.name }) : t('ds.footStyleNone')} · {t('step.hueLabel', { n: props.hue })} · {t('step.fxCount', { n: props.fx.size })}
             {props.designSystem ? ` · ${t('od.footSystem', { name: props.designSystem.name })}` : ''}
           </span>
         </div>
@@ -836,57 +829,57 @@ const DS: Record<string, CSSProperties> = {
   wrap: { flex: 1, minHeight: 0, overflowY: 'auto', width: '100%', boxSizing: 'border-box', animation: 'ab-fade 0.45s ease both' },
   inner: { width: '100%', maxWidth: '1280px', margin: '0 auto', padding: 'clamp(14px, 3vw, 26px)', display: 'flex', flexDirection: 'column', gap: '16px', boxSizing: 'border-box' },
   head: { display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' },
-  title: { fontSize: '22px', fontWeight: 700, margin: 0, color: '#eaf2ff' },
-  sub: { fontSize: '13.5px', color: '#9fb2d6', margin: 0 },
-  secondary: { fontSize: '14px', fontWeight: 600, padding: '11px 18px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.16)', background: 'rgba(255,255,255,0.06)', color: '#dbe7ff', cursor: 'pointer', whiteSpace: 'nowrap' },
-  tabRow: { display: 'flex', gap: '8px', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '10px' },
-  tab: { fontSize: '13px', fontWeight: 700, padding: '9px 16px', borderRadius: '10px', border: '1px solid transparent', background: 'none', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  tabOn: { border: '1px solid rgba(59,130,246,0.5)', background: 'rgba(59,130,246,0.14)', color: '#7dd3fc' },
-  panel: { display: 'flex', flexDirection: 'column', gap: '14px', padding: '18px 20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' },
+  title: { fontSize: '22px', fontWeight: 700, margin: 0, color: 'var(--mu-text)' },
+  sub: { fontSize: '13.5px', color: 'var(--mu-text-3)', margin: 0 },
+  secondary: { fontSize: '14px', fontWeight: 600, padding: '11px 18px', borderRadius: '12px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-2)', cursor: 'pointer', whiteSpace: 'nowrap' },
+  tabRow: { display: 'flex', gap: '8px', flexWrap: 'wrap', borderBottom: '1px solid var(--mu-line)', paddingBottom: '10px' },
+  tab: { fontSize: '13px', fontWeight: 700, padding: '9px 16px', borderRadius: '10px', border: '1px solid transparent', background: 'none', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  tabOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 50%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 14%, transparent)', color: 'var(--mu-link)' },
+  panel: { display: 'flex', flexDirection: 'column', gap: '14px', padding: '18px 20px', borderRadius: '16px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)' },
   colorsGrid: { display: 'flex', gap: '28px', flexWrap: 'wrap' },
   col: { display: 'flex', flexDirection: 'column', gap: '12px', flex: '1 1 280px', minWidth: '250px' },
-  label: { margin: 0, fontSize: '12px', fontWeight: 700, color: '#9fb2d6', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  wheel: { width: '190px', height: '190px', borderRadius: '50%', position: 'relative', cursor: 'crosshair', flexShrink: 0, background: 'conic-gradient(from 0deg, #f00, #ff0 60deg, #0f0 120deg, #0ff 180deg, #00f 240deg, #f0f 300deg, #f00 360deg)', boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.12), 0 8px 24px rgba(0,0,0,0.35)' },
+  label: { margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--mu-text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  wheel: { width: '190px', height: '190px', borderRadius: '50%', position: 'relative', cursor: 'crosshair', flexShrink: 0, background: 'conic-gradient(from 0deg, #f00, #ff0 60deg, #0f0 120deg, #0ff 180deg, #00f 240deg, #f0f 300deg, #f00 360deg)', boxShadow: 'inset 0 0 0 2px var(--mu-line-2), 0 8px 24px rgba(0,0,0,0.35)' },
   wheelDot: { position: 'absolute', width: '18px', height: '18px', borderRadius: '50%', border: '2px solid #fff', transform: 'translate(-50%, -50%)', boxShadow: '0 0 10px rgba(0,0,0,0.65)', pointerEvents: 'none' },
   chipRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  chip: { fontSize: '12.5px', fontWeight: 600, padding: '7px 14px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: '#9fb2d6', cursor: 'pointer', fontFamily: 'inherit' },
-  chipOn: { border: '1px solid rgba(59,130,246,0.6)', background: 'rgba(59,130,246,0.16)', color: '#7dd3fc' },
+  chip: { fontSize: '12.5px', fontWeight: 600, padding: '7px 14px', borderRadius: '999px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-wash-2)', color: 'var(--mu-text-3)', cursor: 'pointer', fontFamily: 'inherit' },
+  chipOn: { border: '1px solid color-mix(in srgb, var(--mu-accent) 60%, transparent)', background: 'color-mix(in srgb, var(--mu-accent) 16%, transparent)', color: 'var(--mu-link)' },
   roleList: { display: 'flex', flexDirection: 'column', gap: '6px' },
   roleRow: { display: 'flex', alignItems: 'center', gap: '10px' },
-  roleSw: { width: '30px', height: '30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.18)', flexShrink: 0 },
-  roleName: { fontSize: '13px', fontWeight: 600, color: '#dbe7ff', width: '84px' },
-  roleHex: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', color: '#5f6f92' },
-  hint: { margin: 0, fontSize: '12px', color: '#5f6f92' },
+  roleSw: { width: '30px', height: '30px', borderRadius: '8px', border: '1px solid var(--mu-line-3)', flexShrink: 0 },
+  roleName: { fontSize: '13px', fontWeight: 600, color: 'var(--mu-text-2)', width: '84px' },
+  roleHex: { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '11.5px', color: 'var(--mu-text-4)' },
+  hint: { margin: 0, fontSize: '12px', color: 'var(--mu-text-4)' },
   stylesGrid: { display: 'flex', gap: '18px', alignItems: 'stretch' },
   styleList: { display: 'flex', flexDirection: 'column', gap: '6px', width: '250px', flexShrink: 0, maxHeight: '430px', overflowY: 'auto', paddingRight: '4px' },
-  styleRow: { display: 'flex', flexDirection: 'column', gap: '5px', padding: '8px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', font: 'inherit', color: '#eaf2ff', textAlign: 'left' },
-  styleRowFocus: { border: '1px solid rgba(125,211,252,0.45)' },
-  styleRowOn: { background: 'rgba(59,130,246,0.1)', boxShadow: 'inset 0 0 0 1px rgba(59,130,246,0.45)' },
-  styleThumb: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '34px', borderRadius: '6px', fontSize: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' },
+  styleRow: { display: 'flex', flexDirection: 'column', gap: '5px', padding: '8px', borderRadius: '10px', border: '1px solid var(--mu-wash-2)', background: 'var(--mu-wash)', cursor: 'pointer', font: 'inherit', color: 'var(--mu-text)', textAlign: 'left' },
+  styleRowFocus: { border: '1px solid color-mix(in srgb, var(--mu-link) 45%, transparent)' },
+  styleRowOn: { background: 'color-mix(in srgb, var(--mu-accent) 10%, transparent)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--mu-accent) 45%, transparent)' },
+  styleThumb: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '34px', borderRadius: '6px', fontSize: '12px', overflow: 'hidden', border: '1px solid var(--mu-wash-2)' },
   styleMeta: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' },
   styleName: { fontSize: '12.5px', fontWeight: 700 },
-  styleTag: { fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', color: '#5f6f92' },
+  styleTag: { fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--mu-text-4)' },
   previewCol: { flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '10px' },
-  previewDesc: { margin: 0, fontSize: '12.5px', color: '#9fb2d6' },
-  primary: { fontSize: '15px', fontWeight: 700, padding: '13px 22px', borderRadius: '13px', border: '1px solid rgba(255,255,255,0.14)', cursor: 'pointer', color: '#ffffff', background: 'linear-gradient(180deg, #4f93ff 0%, #2f6fe6 55%, #2560d0 100%)', boxShadow: '0 8px 22px rgba(37,99,235,0.32)', fontFamily: 'inherit' },
+  previewDesc: { margin: 0, fontSize: '12.5px', color: 'var(--mu-text-3)' },
+  primary: { fontSize: '15px', fontWeight: 700, padding: '13px 22px', borderRadius: '13px', border: '1px solid var(--mu-line-2)', cursor: 'pointer', color: '#ffffff', background: 'linear-gradient(180deg, #2f6fe6 0%, #2560d0 55%, #1d4fb0 100%)', boxShadow: '0 8px 22px rgba(37,99,235,0.32)', fontFamily: 'inherit' },
   primaryOk: { background: 'linear-gradient(180deg, #34d399 0%, #10b981 60%, #0a9e6e 100%)', boxShadow: '0 8px 22px rgba(16,185,129,0.3)' },
-  link: { background: 'none', border: 'none', color: '#7dd3fc', cursor: 'pointer', fontSize: '13px', fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit' },
+  link: { background: 'none', border: 'none', color: 'var(--mu-link)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit' },
   trendBox: { display: 'flex', flexDirection: 'column', gap: '8px', padding: '22px 24px', borderRadius: '14px', border: '1px dashed rgba(139,124,240,0.4)', background: 'rgba(139,124,240,0.06)' },
-  refInput: { flex: 1, minWidth: '240px', boxSizing: 'border-box', fontSize: '13.5px', padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.25)', color: '#eaf2ff', outline: 'none', fontFamily: 'ui-monospace, Menlo, Consolas, monospace' },
+  refInput: { flex: 1, minWidth: '240px', boxSizing: 'border-box', fontSize: '13.5px', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--mu-line-2)', background: 'var(--mu-input)', color: 'var(--mu-text)', outline: 'none', fontFamily: 'ui-monospace, Menlo, Consolas, monospace' },
   libGrid: { display: 'flex', gap: '16px', alignItems: 'stretch', width: '100%' },
   libList: { display: 'flex', flexDirection: 'column', gap: '6px', width: '220px', flexShrink: 0, maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' },
-  libRow: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)', cursor: 'pointer', font: 'inherit', color: '#eaf2ff', textAlign: 'left', width: '100%', boxSizing: 'border-box' },
-  libRowFocus: { border: '1px solid rgba(125,211,252,0.45)' },
-  libRowOn: { background: 'rgba(94,214,160,0.08)', boxShadow: 'inset 0 0 0 1px rgba(94,214,160,0.35)' },
+  libRow: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--mu-wash-2)', background: 'var(--mu-wash)', cursor: 'pointer', font: 'inherit', color: 'var(--mu-text)', textAlign: 'left', width: '100%', boxSizing: 'border-box' },
+  libRowFocus: { border: '1px solid color-mix(in srgb, var(--mu-link) 45%, transparent)' },
+  libRowOn: { background: 'color-mix(in srgb, var(--mu-ok) 8%, transparent)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--mu-ok) 35%, transparent)' },
   libRowName: { fontSize: '13px', fontWeight: 700 },
-  libRowMeta: { fontSize: '10.5px', color: '#5f6f92' },
-  libDetail: { flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', boxSizing: 'border-box' },
-  libTitle: { fontSize: '15px', fontWeight: 700, color: '#eaf2ff' },
+  libRowMeta: { fontSize: '10.5px', color: 'var(--mu-text-4)' },
+  libDetail: { flex: 1, minWidth: '280px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px', padding: '14px 16px', borderRadius: '12px', border: '1px solid var(--mu-line)', background: 'var(--mu-wash)', boxSizing: 'border-box' },
+  libTitle: { fontSize: '15px', fontWeight: 700, color: 'var(--mu-text)' },
   scaleList: { display: 'flex', flexDirection: 'column', gap: '5px', width: '100%', maxHeight: '260px', overflowY: 'auto', paddingRight: '4px' },
   scaleRow: { display: 'flex', alignItems: 'center', gap: '4px' },
-  scaleName: { width: '96px', flexShrink: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '10.5px', color: '#9fb2d6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  scaleSw: { width: '18px', height: '18px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.14)', flexShrink: 0 },
-  adaptBox: { width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', marginTop: '6px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' },
-  error: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', borderRadius: '12px', padding: '12px 16px', fontSize: '13px' },
+  scaleName: { width: '96px', flexShrink: 0, fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: '10.5px', color: 'var(--mu-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  scaleSw: { width: '18px', height: '18px', borderRadius: '5px', border: '1px solid var(--mu-line-2)', flexShrink: 0 },
+  adaptBox: { width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', marginTop: '6px', paddingTop: '12px', borderTop: '1px solid var(--mu-line)' },
+  error: { background: 'color-mix(in srgb, var(--mu-err-bg) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--mu-err-bg) 25%, transparent)', color: 'var(--mu-err)', borderRadius: '12px', padding: '12px 16px', fontSize: '13px' },
   footRow: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' },
 };

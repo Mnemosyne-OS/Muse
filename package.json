@@ -1,6 +1,6 @@
 {
   "name": "@mnemosyne-plugins/muse",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0-beta.5",
   "private": true,
   "repository": "https://github.com/Mnemosyne-OS/Muse",
   "type": "module",
@@ -8,13 +8,14 @@
   "scripts": {
     "dev": "vite",
     "dev:cartridge": "vite",
-    "build": "node scripts/check-i18n.mjs && node scripts/check-version.mjs && tsc && vite build",
+    "build": "node scripts/check-i18n.mjs && node scripts/check-version.mjs && node scripts/check-a11y.mjs && tsc && vite build",
     "preview": "vite preview",
     "i18n": "node scripts/check-i18n.mjs",
     "check:version": "node scripts/check-version.mjs",
-    "test": "node --experimental-strip-types scripts/test.mjs && node --experimental-strip-types scripts/test-logic.mjs",
+    "test": "node scripts/check-a11y.mjs && node --experimental-strip-types scripts/test.mjs && node --experimental-strip-types scripts/test-logic.mjs",
     "test:handoff": "node --experimental-strip-types scripts/test.mjs",
-    "test:logic": "node --experimental-strip-types scripts/test-logic.mjs"
+    "test:logic": "node --experimental-strip-types scripts/test-logic.mjs",
+    "a11y": "node scripts/check-a11y.mjs"
   },
   "dependencies": {
     "@mnemosyne_os/cartridge-sdk": "^0.1.0",

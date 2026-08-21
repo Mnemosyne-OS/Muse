@@ -9,6 +9,51 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`, 
 stamp written into every scaffolded project. `package.json` must carry the same value;
 the build fails on drift (`scripts/check-version.mjs`).
 
+## [1.0.0-beta.5] — 2026-08-20
+
+The language, the theme and the keyboard.
+
+- **The design studio spoke French to everyone.** It was written before Muse
+  had i18n and never came back: its tabs, colour wheel, style descriptions,
+  effect labels, trends panel and save row were hardcoded — including the eight
+  live style previews, the largest thing on the screen. Everything visible now
+  resolves through `t()` in EN/FR/ES.
+- **Muse follows the shell's theme.** A cartridge iframe inherits nothing from
+  the host's stylesheets, so the host broadcasts its computed design tokens
+  instead — Muse simply was not listening. It subscribes once now, and a
+  `--mu-*` layer of twenty semantic roles reads the host's token first and
+  falls back to Muse's own dark palette when there is none. Design *content*
+  (the style presets and their previews, the colour wheel, the brand marks)
+  stays literal on purpose: it shows a fixed design and must not follow a theme.
+- **Every control states its name, every overlay releases the keyboard.**
+  Seventeen icon-only buttons had no accessible name and fifteen fields were
+  named only by a placeholder, which stops existing the moment you type.
+  Overlays closed on a backdrop click and nothing else — Escape works now. The
+  dimmest text level and the primary button both failed WCAG AA contrast; the
+  worst text in the app went from 3.02:1 to 4.37:1 dark and 4.63:1 light.
+- **A status line no longer freezes in the language it was born in.** Messages
+  were stored already translated, so a banner kept speaking the old language
+  after a switch. They now store the key and render at display time — while a
+  raw error from the host passes through untranslated, because it is not ours
+  to translate.
+- **The app catalogue survives a language switch.** `CATALOG.md` was detected
+  by its translated column header, so a catalogue written in another language
+  read as "no catalogue" and was silently rebuilt — every row lost. It is
+  detected by the table separator now, and prose written under the table is
+  carried over untouched.
+- **The repair contract speaks your language.** It demanded the French words
+  `CORRIGÉ` / `IMPOSSIBLE` in every language while telling the agent to answer
+  in yours; an English or Spanish reply parsed as nothing and the round was
+  lost. Both words follow the language now, and the parser accepts every
+  spelling of either.
+- **Fixed: the Open Design loader could not settle.** A system that failed to
+  load — deleted folder, truncated clone — re-triggered the effect that had
+  just run, looping over the disk indefinitely.
+- Also: `<html lang>` follows the shell (a screen reader was pronouncing
+  English pages as French), amounts are formatted per locale (`$1.23` in
+  English, `1,23 $` in French), and the clone modal shows its progress instead
+  of a spinner that had not moved in four minutes.
+
 ## [1.0.0-beta.4] — 2026-08-04
 
 The first-launch fix.

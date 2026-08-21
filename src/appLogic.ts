@@ -10,6 +10,32 @@ import { memoryLabel, memoryMode, type DocFormat, type Lane, type MemorySource }
 
 type T = (key: string, vars?: Record<string, string | number>) => string;
 
+/** A status message that survives a language switch.
+ *
+ *  Storing `t('err.x')` in state freezes the SENTENCE in whatever language was
+ *  active when it was produced: switch the shell afterwards and the banner
+ *  keeps speaking the old one, because a re-render cannot re-translate a
+ *  string. The same reasoning already forced `launchOk` to exist — an outcome
+ *  read back out of translated prose (see App.tsx) — this is that lesson
+ *  applied to the prose itself: keep the KEY, render at display time.
+ *
+ *  A plain string still passes through untouched, for text that is not ours to
+ *  translate: a raw error from the host. An array joins its parts with a space,
+ *  which is how a translated sentence carries an untranslated tail. */
+export type Localized =
+  | string
+  | { key: string; vars?: Record<string, string | number> }
+  | Localized[];
+
+/** Render a Localized with the CURRENT language. Empty for nothing to say, so
+ *  `{renderMsg(x, t) && …}` keeps reading like the string check it replaces. */
+export function renderMsg(m: Localized | null | undefined, t: T): string {
+  if (!m) return '';
+  if (typeof m === 'string') return m;
+  if (Array.isArray(m)) return m.map((part) => renderMsg(part, t)).filter(Boolean).join(' ');
+  return t(m.key, m.vars);
+}
+
 /** A repo Muse can clone into the user's app space (own repo, samples). */
 export type Installable = { id: string; icon: string; name: string; repo: string; dir: string };
 
@@ -20,10 +46,17 @@ export type Installable = { id: string; icon: string; name: string; repo: string
  *  never sees. The two cases are NOT the same and must not read the same. */
 export type GenCost = { usdMicro: number } | { unmeasured: 'local' | 'byok' } | null;
 
-/** A dollar amount in the reader's locale — comma in fr/es, dot in en. */
+/** A dollar amount in the reader's locale. Not just the decimal separator:
+ *  the SYMBOL moves too — "$0.50" in English, "0,50 $" in French and Spanish.
+ *  Appending " $" by hand got the separator right and the position wrong in
+ *  every language but French, so Intl places it. `narrowSymbol` keeps a plain
+ *  "$" instead of the "US$" es-ES would otherwise print: the whole app bills
+ *  in one currency, and disambiguating it here only adds noise. */
 export function fmtUsd(v: number, digits: number, lang: string): string {
-  const n = new Intl.NumberFormat(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
-  return `${n} $`;
+  return new Intl.NumberFormat(lang, {
+    style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: digits, maximumFractionDigits: digits,
+  }).format(v);
 }
 
 /** Money for humans, in the SAME unit as the balance it is drawn from.
@@ -44,8 +77,10 @@ export function formatCost(c: GenCost, t: T, lang: string): string {
   return fmtUsd(usd, usd < 0.01 ? 3 : 2, lang);
 }
 
-/** Translated memory label for the UI. handoff's memoryLabel() stays as-is:
- *  it also feeds prompts and persisted rows, which must not follow the shell. */
+/** Translated memory label for the UI, straight from the locale bundles.
+ *  handoff's memoryLabel() now follows the shell language too — it is what
+ *  gets STORED on a version row — so the two agree; this one stays the UI
+ *  path because the bundles are where a UI string is allowed to live. */
 export function memLabelUI(mem: MemorySource, t: T): string {
   const mode = memoryMode(mem);
   if (mode === 'none') return t('mem.none');

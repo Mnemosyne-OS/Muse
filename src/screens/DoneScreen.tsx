@@ -110,7 +110,7 @@ export function DoneScreen({
             >🧱 {t('studio.reopen')}</button>
           )}
           <button
-            style={{ ...S.secondary, ...(regenOpen ? { color: '#7dd3fc', borderColor: 'rgba(59,130,246,0.5)' } : {}) }}
+            style={{ ...S.secondary, ...(regenOpen ? { color: 'var(--mu-link)', borderColor: 'color-mix(in srgb, var(--mu-accent) 50%, transparent)' } : {}) }}
             title={t('doc.regen')}
             onClick={() => setRegenOpen((v) => !v)}
           ><GRefresh size={13} />{t('doc.regen')}</button>
@@ -129,7 +129,7 @@ export function DoneScreen({
         </div>
       </div>
       {docMsg && (
-        <p style={{ ...S.doneNote, color: docOk === false ? '#fca5a5' : '#5ed6a0' }}>
+        <p style={{ ...S.doneNote, color: docOk === false ? 'var(--mu-err)' : 'var(--mu-ok)' }}>
           {docOk === false ? '⚠️ ' : '✅ '}{docMsg}
         </p>
       )}
@@ -166,7 +166,7 @@ export function DoneScreen({
               <span style={S.styleCardName}>{t('brief.styleAuto')}</span>
             </button>
             {STYLE_PRESETS.map((p) => (
-              <button key={p.id} style={{ ...S.styleCard, ...(docStyle === p.id ? S.styleCardOn : {}) }} title={p.desc} onClick={() => setDocStyle(p.id)}>
+              <button key={p.id} style={{ ...S.styleCard, ...(docStyle === p.id ? S.styleCardOn : {}) }} title={t(`style.desc.${p.id}`)} onClick={() => setDocStyle(p.id)}>
                 <span style={{ ...S.styleThumb, ...p.bn }}>Aa</span>
                 <span style={S.styleCardName}>{p.name}</span>
               </button>
