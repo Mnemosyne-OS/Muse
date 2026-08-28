@@ -1,3 +1,11 @@
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Mnemosyne-OS/Mnemosyne-Neural-OS/main/assets/banner-mnemosyne-os.png" width="100%" alt="Mnemosyne OS — Your memory. Your machine. Your rules." />
+
+🌐 [**mnemosyne-os.io**](https://mnemosyne-os.io) — the product&ensp;·&ensp;[**mnemosyne-os.com**](https://mnemosyne-os.com) — for organizations&ensp;·&ensp;📖 [**docs.mnemosyne-os.io**](https://docs.mnemosyne-os.io) — the documentation
+
+</div>
+
 # Muse <img src="icon.svg" width="28" align="top" alt=""> — neural coding for Mnemosyne OS
 
 ![Version](https://img.shields.io/badge/version-1.0.0--beta.3-blue)
@@ -57,6 +65,18 @@ three run as part of `build`.
 in this repo and modifications are welcome, as long as the cartridge runs within the
 Mnemosyne OS ecosystem. Standalone hosting or redistribution outside a Mnemosyne OS
 instance requires written consent.
+
+## Which Mnemosyne is this?
+
+Several unrelated projects share the name. This cartridge runs inside **Mnemosyne OS**, the sovereign, local-first memory operating system published by XPACEGEMS LLC. Its only official addresses:
+
+- Product site: <https://mnemosyne-os.io>
+- Organizations: <https://mnemosyne-os.com>
+- Documentation: <https://docs.mnemosyne-os.io>
+- Host source: <https://github.com/Mnemosyne-OS/Mnemosyne-Neural-OS>
+- Packages: the npm scope `@mnemosyne_os`
+
+It is not the Mnemosyne spaced-repetition flashcard software, and it is not the `mnemosyne-oss` GitHub organization. Those are different projects by different authors.
 
 ---
 
