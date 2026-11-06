@@ -9,6 +9,10 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`, 
 stamp written into every scaffolded project. `package.json` must carry the same value;
 the build fails on drift (`scripts/check-version.mjs`).
 
+## [1.0.0-beta.7] — 2026-11-05
+
+Strings left in English in the French and Spanish interfaces are translated.
+
 ## [1.0.0-beta.5] — 2026-08-20
 
 The language, the theme and the keyboard.
